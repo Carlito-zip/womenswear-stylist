@@ -17,7 +17,13 @@ export type Outfit = {
   score: number;
   note: string;
 };
-
+export type StyleProfile = {
+  favoriteStyles: string[];
+  lovedColors: string[];
+  avoidedColors: string[];
+  lovedGarments: string[];
+  avoidedGarments: string[];
+};
 type Candidate = Outfit & {
   colors: string[];
   pieces: Garment[];
@@ -453,6 +459,78 @@ function silhouetteScore(
   return clamp(score);
 }
 
+/* =========================================================
+   PERSONAL STYLE PROFILE
+   ========================================================= */
+
+function preferenceScore(
+  pieces: Garment[],
+  colors: string[],
+  selectedStyle: Style,
+  profile?: StyleProfile
+): number {
+
+  if (!profile) {
+    return 75;
+  }
+
+  let score = 70;
+
+  const garmentNames =
+    pieces.map(piece => piece.name);
+
+  /* Favorite style */
+
+  if (
+    profile.favoriteStyles.includes(
+      selectedStyle
+    )
+  ) {
+    score += 12;
+  }
+
+  /* Loved colors */
+
+  for (const color of colors) {
+    if (
+      profile.lovedColors.includes(color)
+    ) {
+      score += 6;
+    }
+  }
+
+  /* Avoided colors */
+
+  for (const color of colors) {
+    if (
+      profile.avoidedColors.includes(color)
+    ) {
+      score -= 22;
+    }
+  }
+
+  /* Loved garments */
+
+  for (const garment of garmentNames) {
+    if (
+      profile.lovedGarments.includes(garment)
+    ) {
+      score += 8;
+    }
+  }
+
+  /* Avoided garments */
+
+  for (const garment of garmentNames) {
+    if (
+      profile.avoidedGarments.includes(garment)
+    ) {
+      score -= 28;
+    }
+  }
+
+  return clamp(score);
+}
 
 /* =========================================================
    COMPLETE SCORE
@@ -464,8 +542,60 @@ function calculateScore(
   anchorColor: string,
   style: Style,
   occasion: string,
-  season: string
+  season: string,
+  profile?: StyleProfile
 ): number {
+
+  const color =
+    colorScore(
+      colors,
+      pieces,
+      anchorColor
+    );
+
+  const styling =
+    styleScore(
+      pieces,
+      style
+    );
+
+  const formality =
+    formalityScore(
+      pieces,
+      occasion
+    );
+
+  const seasonal =
+    seasonScore(
+      pieces,
+      season
+    );
+
+  const silhouette =
+    silhouetteScore(
+      pieces
+    );
+
+  const preference =
+    preferenceScore(
+      pieces,
+      colors,
+      style,
+      profile
+    );
+
+  return Math.round(
+    clamp(
+      color * 0.25 +
+      styling * 0.20 +
+      formality * 0.15 +
+      seasonal * 0.10 +
+      silhouette * 0.10 +
+      preference * 0.20
+    )
+  );
+}
+
 
   const color =
     colorScore(
@@ -1038,7 +1168,8 @@ export function generateOutfits(
   color: string,
   style: string,
   occasion: string,
-  season: string
+  season: string,
+  profile?: StyleProfile
 ): Outfit[] {
 
   const anchor =
@@ -1120,14 +1251,15 @@ export function generateOutfits(
     ) {
 
       const score =
-        calculateScore(
-          structure,
-          option.colors,
-          color,
-          selectedStyle,
-          occasion,
-          season
-        );
+  calculateScore(
+    structure,
+    option.colors,
+    color,
+    selectedStyle,
+    occasion,
+    season,
+    profile
+  );
 
 
       candidates.push({
@@ -1821,7 +1953,8 @@ export function generateWardrobeOutfits(
   wardrobe: WardrobeGarment[],
   style: string,
   occasion: string,
-  season: string
+  season: string,
+  profile?: StyleProfile
 ): Outfit[] {
 
   /*
@@ -1915,14 +2048,15 @@ export function generateWardrobeOutfits(
 
 
     const score =
-      calculateScore(
-        pieces,
-        realColors,
-        anchorItem.color,
-        selectedStyle,
-        occasion,
-        season
-      );
+  calculateScore(
+    pieces,
+    realColors,
+    anchorItem.color,
+    selectedStyle,
+    occasion,
+    season,
+    profile
+  );
 
 
     const harmony =
