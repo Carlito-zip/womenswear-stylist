@@ -7,6 +7,10 @@ import {
 } from './data';
 
 
+/* =========================================================
+   TYPES
+   ========================================================= */
+
 export type Outfit = {
   title: string;
   items: string[];
@@ -150,9 +154,10 @@ function colorPairScore(
   colorB: string
 ): number {
 
-  // Monochromatic outfits
+  // Monochromatic combinations are valid,
+  // but no longer automatically dominate.
   if (colorA === colorB) {
-    return 92;
+    return 90;
   }
 
   const paletteA =
@@ -167,12 +172,8 @@ function colorPairScore(
   const indexB =
     paletteB.indexOf(colorA);
 
-  /*
-    Check compatibility in BOTH directions.
-    This avoids the palette system being
-    accidentally one-sided.
-  */
 
+  // Check compatibility in both directions.
   if (
     indexA !== -1 ||
     indexB !== -1
@@ -195,10 +196,8 @@ function colorPairScore(
     );
   }
 
-  /*
-    Neutral + neutral is usually safe.
-  */
 
+  // Neutral + neutral
   if (
     neutrals.has(colorA) &&
     neutrals.has(colorB)
@@ -206,11 +205,8 @@ function colorPairScore(
     return 82;
   }
 
-  /*
-    Neutral + statement color is
-    generally still wearable.
-  */
 
+  // Neutral + statement color
   if (
     neutrals.has(colorA) ||
     neutrals.has(colorB)
@@ -218,6 +214,8 @@ function colorPairScore(
     return 74;
   }
 
+
+  // Two unsupported statement colors
   return 58;
 }
 
@@ -237,24 +235,8 @@ function outfitColorScore(
   let total = 0;
   let comparisons = 0;
 
-  /*
-    Compare EVERY color against every
-    other color.
 
-    Example:
-
-    Grey coat
-       ↕
-    Cream sweater
-       ↕
-    Black trousers
-       ↕
-    Burgundy loafers
-
-    This is much better than only
-    comparing everything to the coat.
-  */
-
+  // Compare every color with every other color.
   for (
     let i = 0;
     i < colors.length;
@@ -276,16 +258,89 @@ function outfitColorScore(
     }
   }
 
+
   let score =
     total / comparisons;
 
 
-  /*
-    COLOR BALANCE
+  const uniqueColors =
+    new Set(colors);
 
-    Too many unrelated statement colors
-    can make an outfit visually noisy.
-  */
+  const uniqueCount =
+    uniqueColors.size;
+
+
+  const counts:
+    Record<string, number> = {};
+
+
+  colors.forEach(color => {
+
+    counts[color] =
+      (counts[color] || 0) + 1;
+
+  });
+
+
+  const highestRepeat =
+    Math.max(
+      ...Object.values(counts)
+    );
+
+
+  /* -------------------------------------------------------
+     REPETITION PENALTIES
+     ------------------------------------------------------- */
+
+  // A four-piece outfit entirely in one
+  // color is possible, but shouldn't
+  // automatically win every search.
+  if (
+    colors.length >= 4 &&
+    uniqueCount === 1
+  ) {
+    score -= 18;
+  }
+
+
+  // Three or more garments in exactly
+  // the same color becomes repetitive.
+  if (highestRepeat >= 3) {
+    score -= 10;
+  }
+
+
+  /* -------------------------------------------------------
+     DIVERSITY REWARDS
+     ------------------------------------------------------- */
+
+  // Two colors = clean and cohesive.
+  if (
+    uniqueCount === 2 &&
+    colors.length >= 3
+  ) {
+    score += 2;
+  }
+
+
+  // Three colors is generally the
+  // strongest balance between harmony
+  // and visual interest.
+  if (uniqueCount === 3) {
+    score += 7;
+  }
+
+
+  // Four colors can work when all of
+  // them are compatible.
+  if (uniqueCount === 4) {
+    score += 3;
+  }
+
+
+  /* -------------------------------------------------------
+     STATEMENT COLOR CONTROL
+     ------------------------------------------------------- */
 
   const statementColors =
     colors.filter(
@@ -293,49 +348,48 @@ function outfitColorScore(
         !neutrals.has(color)
     );
 
-  const uniqueStatementColors =
+
+  const uniqueStatements =
     new Set(statementColors);
 
 
+  // Too many statement colors can make
+  // the outfit visually noisy.
   if (
-    uniqueStatementColors.size >= 3
+    uniqueStatements.size >= 3
   ) {
-    score -= 8;
+    score -= 10;
   }
 
 
-  /*
-    Reward outfits that use at least
-    one neutral as an anchor.
-  */
+  /* -------------------------------------------------------
+     NEUTRAL FOUNDATION
+     ------------------------------------------------------- */
 
-  if (
-    colors.some(
+  const neutralCount =
+    colors.filter(
       color =>
         neutrals.has(color)
-    )
-  ) {
-    score += 3;
+    ).length;
+
+
+  if (neutralCount >= 1) {
+    score += 2;
   }
 
 
-  /*
-    Reward intentional tonal dressing.
-  */
-
-  const uniqueColors =
-    new Set(colors);
-
+  // Several neutrals + one accent color
+  // is a reliable styling formula.
   if (
-    uniqueColors.size <= 2 &&
-    colors.length >= 3
+    neutralCount >= 2 &&
+    uniqueStatements.size === 1
   ) {
-    score += 4;
+    score += 5;
   }
 
 
   return Math.max(
-    45,
+    40,
     Math.min(100, score)
   );
 }
@@ -356,11 +410,13 @@ function styleScore(
         garment.styles[style] || 3
     );
 
+
   const average =
     scores.reduce(
       (a, b) => a + b,
       0
     ) / scores.length;
+
 
   return average * 20;
 }
@@ -380,6 +436,7 @@ function formalityScore(
       occasion
     ] ?? 3;
 
+
   const average =
     outfit.reduce(
       (sum, garment) =>
@@ -388,10 +445,12 @@ function formalityScore(
       0
     ) / outfit.length;
 
+
   const difference =
     Math.abs(
       target - average
     );
+
 
   return Math.max(
     40,
@@ -415,10 +474,12 @@ function seasonScore(
     return 88;
   }
 
+
   const target =
     seasonWarmth[
       season
     ] ?? 3;
+
 
   const average =
     outfit.reduce(
@@ -427,10 +488,12 @@ function seasonScore(
       0
     ) / outfit.length;
 
+
   const difference =
     Math.abs(
       target - average
     );
+
 
   return Math.max(
     35,
@@ -449,17 +512,20 @@ function silhouetteScore(
 
   let score = 88;
 
+
   const wide =
     outfit.filter(
       garment =>
         garment.volume === 'Wide'
     ).length;
 
+
   const slim =
     outfit.filter(
       garment =>
         garment.volume === 'Slim'
     ).length;
+
 
   const oversized =
     outfit.filter(
@@ -468,11 +534,8 @@ function silhouetteScore(
     ).length;
 
 
-  /*
-    Wide + slim often produces
-    intentional visual balance.
-  */
-
+  // Wide + slim creates intentional
+  // silhouette contrast.
   if (
     wide >= 1 &&
     slim >= 1
@@ -481,11 +544,7 @@ function silhouetteScore(
   }
 
 
-  /*
-    Too much volume can overwhelm
-    the silhouette.
-  */
-
+  // Too much volume.
   if (wide >= 3) {
     score -= 15;
   }
@@ -520,11 +579,13 @@ function calculateScore(
       outfitColors
     );
 
+
   const styling =
     styleScore(
       outfit,
       style
     );
+
 
   const formality =
     formalityScore(
@@ -532,11 +593,13 @@ function calculateScore(
       occasion
     );
 
+
   const seasonal =
     seasonScore(
       outfit,
       season
     );
+
 
   const silhouette =
     silhouetteScore(
@@ -545,7 +608,7 @@ function calculateScore(
 
 
   /*
-    RECOMMENDATION WEIGHTS
+    FINAL WEIGHTS
 
     Color        30%
     Style        25%
@@ -582,21 +645,11 @@ function getCandidateColors(
   const palette =
     palettes[anchorColor] || [];
 
-  /*
-    Limit the search to strong colors.
-
-    Searching all 14 colors for every
-    garment would create an unnecessarily
-    huge search space.
-
-    Anchor + best palette options gives us
-    plenty of variation.
-  */
 
   return Array.from(
     new Set([
       anchorColor,
-      ...palette.slice(0, 6)
+      ...palette.slice(0, 7)
     ])
   );
 }
@@ -615,6 +668,7 @@ function generateColorCombinations(
     getCandidateColors(
       anchorColor
     );
+
 
   const results:
     string[][] = [];
@@ -647,11 +701,13 @@ function generateColorCombinations(
         [...current, color],
         depth + 1
       );
+
     }
   }
 
 
   build([], 0);
+
 
   return results;
 }
@@ -675,6 +731,7 @@ function createTitle(
       'Styled Harmony',
       'Editor Pick'
     ];
+
 
     return names[
       index % names.length
@@ -710,12 +767,13 @@ function createNote(
   season: string
 ): string {
 
-  const colorScore =
+  const colorHarmony =
     Math.round(
       outfitColorScore(
         colors
       )
     );
+
 
   const styleMatch =
     Math.round(
@@ -728,7 +786,7 @@ function createNote(
 
   return (
     `${style} styling · ` +
-    `${colorScore}% color harmony · ` +
+    `${colorHarmony}% color harmony · ` +
     `${styleMatch}% style match · ` +
     `balanced for ${occasion.toLowerCase()} ` +
     `and ${season.toLowerCase()}.`
@@ -752,6 +810,7 @@ export function generateOutfits(
   const anchor =
     getGarment(item);
 
+
   if (!anchor) {
     return [];
   }
@@ -764,23 +823,26 @@ export function generateOutfits(
   const tops =
     byCategory('Top');
 
+
   const bottoms =
     byCategory('Bottom');
 
+
   const outerwear =
     byCategory('Outerwear');
+
 
   const shoes =
     byCategory('Shoes');
 
 
-  /*
-    First generate garment structures.
-  */
-
   const structures:
     Garment[][] = [];
 
+
+  /* -------------------------------------------------------
+     TOP SELECTED
+     ------------------------------------------------------- */
 
   if (category === 'Top') {
 
@@ -792,6 +854,7 @@ export function generateOutfits(
         const shoe of shoes
       ) {
 
+        // Outfit without outerwear
         structures.push([
           anchor,
           bottom,
@@ -799,6 +862,7 @@ export function generateOutfits(
         ]);
 
 
+        // Outfit with outerwear
         for (
           const jacket
           of outerwear
@@ -815,6 +879,10 @@ export function generateOutfits(
     }
   }
 
+
+  /* -------------------------------------------------------
+     BOTTOM SELECTED
+     ------------------------------------------------------- */
 
   else if (
     category === 'Bottom'
@@ -851,6 +919,10 @@ export function generateOutfits(
     }
   }
 
+
+  /* -------------------------------------------------------
+     SHOES SELECTED
+     ------------------------------------------------------- */
 
   else if (
     category === 'Shoes'
@@ -889,14 +961,16 @@ export function generateOutfits(
   }
 
 
+  /* -------------------------------------------------------
+     OUTERWEAR SELECTED
+     ------------------------------------------------------- */
+
   else if (
     category === 'Outerwear'
   ) {
 
-    /*
-      Selected item is already outerwear.
-      No second jacket can be generated.
-    */
+    // The anchor is already outerwear,
+    // so another jacket is never added.
 
     for (
       const top of tops
@@ -923,6 +997,10 @@ export function generateOutfits(
   }
 
 
+  /* -------------------------------------------------------
+     DRESS SELECTED
+     ------------------------------------------------------- */
+
   else if (
     category === 'Dress'
   ) {
@@ -931,12 +1009,14 @@ export function generateOutfits(
       const shoe of shoes
     ) {
 
+      // Dress + shoes
       structures.push([
         anchor,
         shoe
       ]);
 
 
+      // Dress + shoes + outerwear
       for (
         const jacket
         of outerwear
@@ -959,6 +1039,7 @@ export function generateOutfits(
   const candidates:
     Outfit[] = [];
 
+
   let index = 0;
 
 
@@ -975,21 +1056,21 @@ export function generateOutfits(
 
 
     /*
-      Instead of keeping every possible
-      color combination, score them and
-      keep the best few for this garment
-      structure.
+      Find the strongest color options
+      for this particular garment set.
     */
 
     const scoredColors =
       colorCombinations
         .map(colors => ({
+
           colors,
 
           score:
             outfitColorScore(
               colors
             )
+
         }))
 
         .sort(
@@ -997,7 +1078,9 @@ export function generateOutfits(
             b.score - a.score
         )
 
-        .slice(0, 4);
+        // Keep several palette options
+        // so variation remains possible.
+        .slice(0, 8);
 
 
     for (
@@ -1017,13 +1100,18 @@ export function generateOutfits(
 
       const items =
         structure.map(
-          (piece, pieceIndex) =>
+          (
+            piece,
+            pieceIndex
+          ) =>
+
             `${
               colorOption
                 .colors[
                   pieceIndex
                 ]
             } ${piece.name}`
+
         );
 
 
@@ -1048,6 +1136,7 @@ export function generateOutfits(
             occasion,
             season
           )
+
       });
 
 
@@ -1057,7 +1146,7 @@ export function generateOutfits(
 
 
   /* =======================================================
-     REMOVE DUPLICATES
+     REMOVE EXACT DUPLICATES
      ======================================================= */
 
   const seen =
@@ -1090,7 +1179,7 @@ export function generateOutfits(
 
 
   /* =======================================================
-     PREVENT SIX NEAR-IDENTICAL RESULTS
+     RANK EVERYTHING
      ======================================================= */
 
   const ranked =
@@ -1100,10 +1189,19 @@ export function generateOutfits(
     );
 
 
+  /* =======================================================
+     RESULT DIVERSITY
+     ======================================================= */
+
   const final:
     Outfit[] = [];
 
+
   const usedGarmentSets =
+    new Set<string>();
+
+
+  const usedColorPalettes =
     new Set<string>();
 
 
@@ -1112,11 +1210,12 @@ export function generateOutfits(
     of ranked
   ) {
 
-    /*
-      Ignore colors here so the top six
-      don't become the exact same garments
-      in six slightly different colors.
-    */
+    /* -----------------------------------------------------
+       GARMENT DIVERSITY
+
+       Prevent the six results from being
+       the same garments recolored.
+       ----------------------------------------------------- */
 
     const garmentKey =
       outfit.items
@@ -1139,9 +1238,47 @@ export function generateOutfits(
     }
 
 
+    /* -----------------------------------------------------
+       COLOR DIVERSITY
+
+       Navy + White + Cream is considered
+       the same basic palette regardless
+       of which garment uses each color.
+       ----------------------------------------------------- */
+
+    const outfitColors =
+      outfit.items.map(
+        item =>
+          item.split(' ')[0]
+      );
+
+
+    const paletteKey =
+      Array.from(
+        new Set(outfitColors)
+      )
+        .sort()
+        .join('|');
+
+
+    if (
+      usedColorPalettes.has(
+        paletteKey
+      )
+    ) {
+      continue;
+    }
+
+
     usedGarmentSets.add(
       garmentKey
     );
+
+
+    usedColorPalettes.add(
+      paletteKey
+    );
+
 
     final.push(outfit);
 
@@ -1150,6 +1287,63 @@ export function generateOutfits(
       final.length === 6
     ) {
       break;
+    }
+  }
+
+
+  /* =======================================================
+     FALLBACK
+
+     If strict diversity somehow leaves
+     fewer than six results, fill remaining
+     positions with the best unused outfits.
+     ======================================================= */
+
+  if (
+    final.length < 6
+  ) {
+
+    const alreadyUsed =
+      new Set(
+        final.map(
+          outfit =>
+            outfit.items
+              .slice()
+              .sort()
+              .join('|')
+        )
+      );
+
+
+    for (
+      const outfit
+      of ranked
+    ) {
+
+      const key =
+        outfit.items
+          .slice()
+          .sort()
+          .join('|');
+
+
+      if (
+        alreadyUsed.has(key)
+      ) {
+        continue;
+      }
+
+
+      final.push(outfit);
+
+      alreadyUsed.add(key);
+
+
+      if (
+        final.length === 6
+      ) {
+        break;
+      }
     }
   }
 
