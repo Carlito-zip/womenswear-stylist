@@ -1174,3 +1174,53 @@ footer {
   }
 
 }
+/* =========================================
+   NAVIGATION ACTIONS
+   ========================================= */
+
+.navActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.navActions .ghost {
+  white-space: nowrap;
+}
+
+
+/* =========================================
+   MOBILE NAVIGATION
+   ========================================= */
+
+@media (max-width: 800px) {
+
+  nav {
+    height: auto;
+    min-height: 72px;
+    padding: 12px 4vw;
+    gap: 10px;
+  }
+
+  .logo {
+    flex-shrink: 0;
+    font-size: 22px;
+  }
+
+  .navActions {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+  }
+
+  .navActions .ghost {
+    padding: 9px 10px;
+    font-size: 11px;
+  }
+
+  .navActions .ghost span {
+    margin-left: 3px;
+    padding: 1px 5px;
+  }
+
+}
