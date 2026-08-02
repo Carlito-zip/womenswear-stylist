@@ -597,49 +597,7 @@ function calculateScore(
 }
 
 
-  const color =
-    colorScore(
-      colors,
-      pieces,
-      anchorColor
-    );
-
-  const styling =
-    styleScore(
-      pieces,
-      style
-    );
-
-  const formality =
-    formalityScore(
-      pieces,
-      occasion
-    );
-
-  const seasonal =
-    seasonScore(
-      pieces,
-      season
-    );
-
-  const silhouette =
-    silhouetteScore(
-      pieces
-    );
-
-
-  return Math.round(
-    clamp(
-      color * 0.30 +
-      styling * 0.25 +
-      formality * 0.20 +
-      seasonal * 0.15 +
-      silhouette * 0.10
-    )
-  );
-}
-
-
+ 
 /* =========================================================
    COLOR SEARCH
    ========================================================= */
