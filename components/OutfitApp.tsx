@@ -2014,9 +2014,9 @@ setOutfits(
                           garmentName
                         )
                       }
-                    >
+                    
 
-                      >
+                      
   {garmentName}
 
   <span>
