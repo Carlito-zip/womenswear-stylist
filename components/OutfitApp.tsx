@@ -1,6 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import {
+  useEffect,
+  useState
+} from 'react';
+
 import {
   categories,
   colors,
@@ -11,26 +15,24 @@ import {
 
 import {
   generateOutfits,
-  Outfit
+  generateWardrobeOutfits,
+  Outfit,
+  WardrobeGarment
 } from '../lib/outfitEngine';
 
 
-type Cat = keyof typeof categories;
+type Cat =
+  keyof typeof categories;
 
-type WardrobeItem = {
-  id: string;
-  name: string;
-  category: Cat;
-  garment: string;
-  color: string;
-  createdAt: number;
-};
+type GeneratorMode =
+  'catalog' |
+  'wardrobe';
 
 
 export default function OutfitApp() {
 
   /* =======================================================
-     STYLER STATE
+     STYLER
      ======================================================= */
 
   const [category, setCategory] =
@@ -56,7 +58,26 @@ export default function OutfitApp() {
 
 
   /* =======================================================
-     SAVED OUTFITS
+     GENERATOR MODE
+     ======================================================= */
+
+  const [generatorMode, setGeneratorMode] =
+    useState<GeneratorMode>('catalog');
+
+  const [selectedWardrobeId, setSelectedWardrobeId] =
+    useState<string>('');
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  const [generatorMessage, setGeneratorMessage] =
+    useState('');
+
+
+  /* =======================================================
+     SAVED
      ======================================================= */
 
   const [saved, setSaved] =
@@ -64,11 +85,11 @@ export default function OutfitApp() {
 
 
   /* =======================================================
-     WARDROBE STATE
+     WARDROBE
      ======================================================= */
 
   const [wardrobe, setWardrobe] =
-    useState<WardrobeItem[]>([]);
+    useState<WardrobeGarment[]>([]);
 
   const [wardrobeOpen, setWardrobeOpen] =
     useState(false);
@@ -81,30 +102,34 @@ export default function OutfitApp() {
 
 
   /* =======================================================
-     NEW ITEM FORM
+     ADD ITEM
      ======================================================= */
 
   const [newCategory, setNewCategory] =
     useState<Cat>('Top');
 
   const [newGarment, setNewGarment] =
-    useState<string>(categories.Top[0]);
+    useState<string>(
+      categories.Top[0]
+    );
 
   const [newColor, setNewColor] =
-    useState<string>('Black');
+    useState('Black');
 
   const [newName, setNewName] =
     useState('');
 
 
   /* =======================================================
-     LOAD LOCAL DATA
+     LOAD STORAGE
      ======================================================= */
 
   useEffect(() => {
 
     const savedData =
-      localStorage.getItem('muse-saved');
+      localStorage.getItem(
+        'muse-saved'
+      );
 
     if (savedData) {
 
@@ -124,9 +149,25 @@ export default function OutfitApp() {
     if (wardrobeData) {
 
       try {
-        setWardrobe(
-          JSON.parse(wardrobeData)
-        );
+
+        const parsed =
+          JSON.parse(
+            wardrobeData
+          ) as WardrobeGarment[];
+
+
+        setWardrobe(parsed);
+
+
+        if (
+          parsed.length > 0
+        ) {
+
+          setSelectedWardrobeId(
+            parsed[0].id
+          );
+        }
+
       } catch {}
     }
 
@@ -134,7 +175,7 @@ export default function OutfitApp() {
 
 
   /* =======================================================
-     STYLER
+     CATEGORY
      ======================================================= */
 
   function chooseCat(c: Cat) {
@@ -144,32 +185,197 @@ export default function OutfitApp() {
     setItem(
       categories[c][0]
     );
+
+    setGeneratorMode(
+      'catalog'
+    );
+
+    setSelectedWardrobeId('');
+
+    setGeneratorMessage('');
   }
 
 
+  /* =======================================================
+     NORMAL GENERATION
+     ======================================================= */
+
   function generate() {
 
-    setOutfits(
-      generateOutfits(
-        category,
-        item,
-        color,
-        style,
-        occasion,
-        season
-      )
-    );
+    setGeneratorMessage('');
+
+
+    if (
+      generatorMode ===
+      'wardrobe'
+    ) {
+
+      if (
+        !selectedWardrobeId
+      ) {
+
+        setOutfits([]);
+
+        setGeneratorMessage(
+          'Choose a piece from My Wardrobe first.'
+        );
+
+        return;
+      }
+
+
+      const results =
+        generateWardrobeOutfits(
+          selectedWardrobeId,
+          wardrobe,
+          style,
+          occasion,
+          season
+        );
+
+
+      setOutfits(results);
+
+
+      if (
+        results.length === 0
+      ) {
+
+        setGeneratorMessage(
+          getWardrobeHelpMessage()
+        );
+
+        return;
+      }
+
+
+      if (
+        results.length < 6
+      ) {
+
+        setGeneratorMessage(
+          `MUSE found ${results.length} complete ${
+            results.length === 1
+              ? 'outfit'
+              : 'outfits'
+          } using only pieces you own. Add more wardrobe pieces for more combinations.`
+        );
+      }
+
+    } else {
+
+      setOutfits(
+        generateOutfits(
+          category,
+          item,
+          color,
+          style,
+          occasion,
+          season
+        )
+      );
+    }
 
 
     setTimeout(() => {
 
       document
-        .getElementById('results')
+        .getElementById(
+          'results'
+        )
         ?.scrollIntoView({
           behavior: 'smooth'
         });
 
     }, 50);
+  }
+
+
+  /* =======================================================
+     WARDROBE HELP
+     ======================================================= */
+
+  function getWardrobeHelpMessage() {
+
+    const selected =
+      wardrobe.find(
+        wardrobeItem =>
+          wardrobeItem.id ===
+          selectedWardrobeId
+      );
+
+
+    if (!selected) {
+      return 'Choose a piece from My Wardrobe first.';
+    }
+
+
+    const hasTop =
+      wardrobe.some(
+        wardrobeItem =>
+          wardrobeItem.category ===
+          'Top'
+      );
+
+    const hasBottom =
+      wardrobe.some(
+        wardrobeItem =>
+          wardrobeItem.category ===
+          'Bottom'
+      );
+
+    const hasShoes =
+      wardrobe.some(
+        wardrobeItem =>
+          wardrobeItem.category ===
+          'Shoes'
+      );
+
+
+    const missing: string[] = [];
+
+
+    if (
+      selected.category !== 'Dress' &&
+      selected.category !== 'Top' &&
+      !hasTop
+    ) {
+      missing.push('a top');
+    }
+
+
+    if (
+      selected.category !== 'Dress' &&
+      selected.category !== 'Bottom' &&
+      !hasBottom
+    ) {
+      missing.push('a bottom');
+    }
+
+
+    if (
+      selected.category !== 'Shoes' &&
+      !hasShoes
+    ) {
+      missing.push('shoes');
+    }
+
+
+    if (
+      missing.length > 0
+    ) {
+
+      return (
+        `Add ${missing.join(
+          ', '
+        )} to My Wardrobe so MUSE can build a complete outfit around this piece.`
+      );
+    }
+
+
+    return (
+      'MUSE could not build a complete outfit from the current wardrobe. Try adding a few more pieces.'
+    );
   }
 
 
@@ -207,7 +413,7 @@ export default function OutfitApp() {
      ======================================================= */
 
   function saveWardrobe(
-    items: WardrobeItem[]
+    items: WardrobeGarment[]
   ) {
 
     setWardrobe(items);
@@ -220,13 +426,13 @@ export default function OutfitApp() {
 
 
   /* =======================================================
-     ADD WARDROBE ITEM
+     ADD ITEM
      ======================================================= */
 
   function addWardrobeItem() {
 
     const wardrobeItem:
-      WardrobeItem = {
+      WardrobeGarment = {
 
         id:
           `${Date.now()}-${Math.random()}`,
@@ -249,11 +455,18 @@ export default function OutfitApp() {
       };
 
 
-    saveWardrobe([
+    const next = [
       wardrobeItem,
       ...wardrobe
-    ]);
+    ];
 
+
+    saveWardrobe(next);
+
+
+    setSelectedWardrobeId(
+      wardrobeItem.id
+    );
 
     setNewName('');
 
@@ -262,7 +475,7 @@ export default function OutfitApp() {
 
 
   /* =======================================================
-     DELETE WARDROBE ITEM
+     DELETE
      ======================================================= */
 
   function deleteWardrobeItem(
@@ -271,17 +484,27 @@ export default function OutfitApp() {
 
     const next =
       wardrobe.filter(
-        item =>
-          item.id !== id
+        wardrobeItem =>
+          wardrobeItem.id !== id
       );
 
 
     saveWardrobe(next);
+
+
+    if (
+      selectedWardrobeId === id
+    ) {
+
+      setSelectedWardrobeId(
+        next[0]?.id || ''
+      );
+    }
   }
 
 
   /* =======================================================
-     CHANGE NEW ITEM CATEGORY
+     ADD CATEGORY
      ======================================================= */
 
   function changeNewCategory(
@@ -297,11 +520,12 @@ export default function OutfitApp() {
 
 
   /* =======================================================
-     STYLE A WARDROBE ITEM
+     STYLE WARDROBE ITEM
      ======================================================= */
 
   function styleWardrobeItem(
-    wardrobeItem: WardrobeItem
+    wardrobeItem:
+      WardrobeGarment
   ) {
 
     setCategory(
@@ -316,6 +540,15 @@ export default function OutfitApp() {
       wardrobeItem.color
     );
 
+    setSelectedWardrobeId(
+      wardrobeItem.id
+    );
+
+    setGeneratorMode(
+      'wardrobe'
+    );
+
+    setGeneratorMessage('');
 
     setWardrobeOpen(false);
 
@@ -323,7 +556,9 @@ export default function OutfitApp() {
     setTimeout(() => {
 
       document
-        .getElementById('styler')
+        .getElementById(
+          'styler'
+        )
         ?.scrollIntoView({
           behavior: 'smooth'
         });
@@ -333,7 +568,96 @@ export default function OutfitApp() {
 
 
   /* =======================================================
-     FILTERED WARDROBE
+     MODE SWITCH
+     ======================================================= */
+
+  function switchToCatalog() {
+
+    setGeneratorMode(
+      'catalog'
+    );
+
+    setGeneratorMessage('');
+  }
+
+
+  function switchToWardrobe() {
+
+    setGeneratorMode(
+      'wardrobe'
+    );
+
+    setGeneratorMessage('');
+
+
+    if (
+      !selectedWardrobeId &&
+      wardrobe.length > 0
+    ) {
+
+      const first =
+        wardrobe[0];
+
+      setSelectedWardrobeId(
+        first.id
+      );
+
+      setCategory(
+        first.category
+      );
+
+      setItem(
+        first.garment
+      );
+
+      setColor(
+        first.color
+      );
+    }
+  }
+
+
+  /* =======================================================
+     CHANGE WARDROBE ANCHOR
+     ======================================================= */
+
+  function changeWardrobeAnchor(
+    id: string
+  ) {
+
+    setSelectedWardrobeId(id);
+
+
+    const selected =
+      wardrobe.find(
+        wardrobeItem =>
+          wardrobeItem.id === id
+      );
+
+
+    if (!selected) {
+      return;
+    }
+
+
+    setCategory(
+      selected.category
+    );
+
+    setItem(
+      selected.garment
+    );
+
+    setColor(
+      selected.color
+    );
+
+    setGeneratorMessage('');
+  }
+
+
+  /* =======================================================
+     FILTER
      ======================================================= */
 
   const filteredWardrobe =
@@ -343,22 +667,26 @@ export default function OutfitApp() {
       ? wardrobe
 
       : wardrobe.filter(
-          item =>
-            item.category ===
+          wardrobeItem =>
+            wardrobeItem.category ===
             wardrobeFilter
         );
 
 
+  const selectedWardrobeItem =
+    wardrobe.find(
+      wardrobeItem =>
+        wardrobeItem.id ===
+        selectedWardrobeId
+    );
+
+
   /* =======================================================
-     PAGE
+     UI
      ======================================================= */
 
   return (
     <>
-
-      {/* ===================================================
-          NAVIGATION
-          =================================================== */}
 
       <nav>
 
@@ -404,9 +732,7 @@ export default function OutfitApp() {
 
       <main>
 
-        {/* =================================================
-            HERO
-            ================================================= */}
+        {/* HERO */}
 
         <section className="hero">
 
@@ -414,16 +740,11 @@ export default function OutfitApp() {
             YOUR WARDROBE, REIMAGINED
           </p>
 
-
           <h1>
             What are you
             <br />
-
-            <em>
-              styling?
-            </em>
+            <em>styling?</em>
           </h1>
-
 
           <p className="lead">
 
@@ -433,7 +754,6 @@ export default function OutfitApp() {
             occasion and season.
 
           </p>
-
 
           <a
             href="#styler"
@@ -445,9 +765,7 @@ export default function OutfitApp() {
         </section>
 
 
-        {/* =================================================
-            STYLER
-            ================================================= */}
+        {/* STYLER */}
 
         <section
           id="styler"
@@ -456,20 +774,18 @@ export default function OutfitApp() {
 
           <div className="step">
 
-            <b>
-              01
-            </b>
-
+            <b>01</b>
 
             <div>
 
               <h2>
-                Choose a category
+                Choose your starting piece
               </h2>
 
               <p>
-                Start with the piece
-                you want to wear.
+                Style from the MUSE catalog
+                or build a look entirely
+                from clothes you own.
               </p>
 
             </div>
@@ -477,97 +793,292 @@ export default function OutfitApp() {
           </div>
 
 
-          <div className="categoryGrid">
+          {/* MODE SELECTOR */}
 
-            {(Object.keys(categories) as Cat[])
-              .map(c => (
+          <div className="generatorModes">
 
-                <button
+            <button
+              className={
+                generatorMode ===
+                'catalog'
+                  ? 'generatorMode active'
+                  : 'generatorMode'
+              }
+              onClick={
+                switchToCatalog
+              }
+            >
 
-                  className={
-                    category === c
-                      ? 'cat active'
-                      : 'cat'
-                  }
+              <strong>
+                MUSE catalog
+              </strong>
 
-                  onClick={() =>
-                    chooseCat(c)
-                  }
+              <span>
+                Explore styling ideas
+              </span>
 
-                  key={c}
-                >
+            </button>
 
-                  <span>
-                    {icons[c]}
-                  </span>
 
-                  {c}
+            <button
+              className={
+                generatorMode ===
+                'wardrobe'
+                  ? 'generatorMode active'
+                  : 'generatorMode'
+              }
+              onClick={
+                switchToWardrobe
+              }
+            >
 
-                </button>
+              <strong>
+                My wardrobe
+              </strong>
 
-              ))}
+              <span>
+                Use only clothes I own
+              </span>
+
+            </button>
 
           </div>
 
 
-          <div className="formGrid">
+          {/* CATALOG MODE */}
 
-            <label>
+          {generatorMode ===
+            'catalog' && (
+            <>
 
-              GARMENT
+              <div className="categoryGrid">
 
-              <select
-                value={item}
-                onChange={e =>
-                  setItem(
-                    e.target.value
-                  )
-                }
-              >
+                {(Object.keys(
+                  categories
+                ) as Cat[])
+                  .map(c => (
 
-                {categories[category]
-                  .map(x => (
-
-                    <option
-                      key={x}
+                    <button
+                      className={
+                        category === c
+                          ? 'cat active'
+                          : 'cat'
+                      }
+                      onClick={() =>
+                        chooseCat(c)
+                      }
+                      key={c}
                     >
-                      {x}
-                    </option>
+
+                      <span>
+                        {icons[c]}
+                      </span>
+
+                      {c}
+
+                    </button>
 
                   ))}
 
-              </select>
-
-            </label>
+              </div>
 
 
-            <label>
+              <div className="formGrid">
 
-              COLOR
+                <label>
 
-              <select
-                value={color}
-                onChange={e =>
-                  setColor(
-                    e.target.value
-                  )
-                }
-              >
+                  GARMENT
 
-                {colors.map(x => (
-
-                  <option
-                    key={x}
+                  <select
+                    value={item}
+                    onChange={e =>
+                      setItem(
+                        e.target.value
+                      )
+                    }
                   >
-                    {x}
-                  </option>
 
-                ))}
+                    {categories[
+                      category
+                    ].map(x => (
 
-              </select>
+                      <option key={x}>
+                        {x}
+                      </option>
 
-            </label>
+                    ))}
 
+                  </select>
+
+                </label>
+
+
+                <label>
+
+                  COLOR
+
+                  <select
+                    value={color}
+                    onChange={e =>
+                      setColor(
+                        e.target.value
+                      )
+                    }
+                  >
+
+                    {colors.map(x => (
+
+                      <option key={x}>
+                        {x}
+                      </option>
+
+                    ))}
+
+                  </select>
+
+                </label>
+
+              </div>
+
+            </>
+          )}
+
+
+          {/* WARDROBE MODE */}
+
+          {generatorMode ===
+            'wardrobe' && (
+
+            <div className="wardrobeStyler">
+
+              {wardrobe.length === 0
+                ? (
+
+                  <div className="wardrobeStylerEmpty">
+
+                    <h3>
+                      Your wardrobe is empty.
+                    </h3>
+
+                    <p>
+                      Add some clothes first,
+                      then MUSE can build
+                      outfits using only
+                      pieces you own.
+                    </p>
+
+                    <button
+                      className="wardrobeAdd"
+                      onClick={() => {
+                        setWardrobeOpen(true);
+                        setAddingItem(true);
+                      }}
+                    >
+                      + Add your first garment
+                    </button>
+
+                  </div>
+
+                )
+                : (
+
+                  <label>
+
+                    START WITH
+
+                    <select
+                      value={
+                        selectedWardrobeId
+                      }
+                      onChange={e =>
+                        changeWardrobeAnchor(
+                          e.target.value
+                        )
+                      }
+                    >
+
+                      {wardrobe.map(
+                        wardrobeItem => (
+
+                          <option
+                            value={
+                              wardrobeItem.id
+                            }
+                            key={
+                              wardrobeItem.id
+                            }
+                          >
+
+                            {
+                              wardrobeItem.name
+                            }
+                            {' · '}
+                            {
+                              wardrobeItem.color
+                            }
+
+                          </option>
+
+                        )
+                      )}
+
+                    </select>
+
+                  </label>
+
+                )
+              }
+
+
+              {selectedWardrobeItem && (
+
+                <div className="selectedWardrobePiece">
+
+                  <i
+                    style={{
+                      background:
+                        swatch(
+                          selectedWardrobeItem.color
+                        )
+                    }}
+                  />
+
+                  <div>
+
+                    <span>
+                      STYLING FROM YOUR WARDROBE
+                    </span>
+
+                    <strong>
+                      {
+                        selectedWardrobeItem.name
+                      }
+                    </strong>
+
+                    <p>
+                      {
+                        selectedWardrobeItem.color
+                      }
+                      {' · '}
+                      {
+                        selectedWardrobeItem.garment
+                      }
+                    </p>
+
+                  </div>
+
+                </div>
+
+              )}
+
+            </div>
+
+          )}
+
+
+          {/* COMMON SETTINGS */}
+
+          <div className="formGrid wardrobeSettings">
 
             <label>
 
@@ -584,9 +1095,7 @@ export default function OutfitApp() {
 
                 {styles.map(x => (
 
-                  <option
-                    key={x}
-                  >
+                  <option key={x}>
                     {x}
                   </option>
 
@@ -612,9 +1121,7 @@ export default function OutfitApp() {
 
                 {occasions.map(x => (
 
-                  <option
-                    key={x}
-                  >
+                  <option key={x}>
                     {x}
                   </option>
 
@@ -640,9 +1147,7 @@ export default function OutfitApp() {
 
                 {seasons.map(x => (
 
-                  <option
-                    key={x}
-                  >
+                  <option key={x}>
                     {x}
                   </option>
 
@@ -655,25 +1160,61 @@ export default function OutfitApp() {
           </div>
 
 
+          {generatorMessage && (
+
+            <div className="generatorMessage">
+
+              <span>i</span>
+
+              <p>
+                {generatorMessage}
+              </p>
+
+              {generatorMode ===
+                'wardrobe' && (
+
+                <button
+                  onClick={() =>
+                    setWardrobeOpen(true)
+                  }
+                >
+                  Open wardrobe →
+                </button>
+
+              )}
+
+            </div>
+
+          )}
+
+
           <button
             className="generate"
             onClick={generate}
+            disabled={
+              generatorMode ===
+                'wardrobe' &&
+              wardrobe.length === 0
+            }
           >
 
-            Generate my outfits
+            {
+              generatorMode ===
+              'wardrobe'
 
-            <span>
-              →
-            </span>
+                ? 'Build from my wardrobe'
+
+                : 'Generate my outfits'
+            }
+
+            <span>→</span>
 
           </button>
 
         </section>
 
 
-        {/* =================================================
-            RESULTS
-            ================================================= */}
+        {/* RESULTS */}
 
         {outfits.length > 0 && (
 
@@ -683,12 +1224,30 @@ export default function OutfitApp() {
           >
 
             <p className="eyebrow">
-              CURATED FOR YOU
+
+              {
+                generatorMode ===
+                'wardrobe'
+
+                  ? 'FROM PIECES YOU OWN'
+
+                  : 'CURATED FOR YOU'
+              }
+
             </p>
 
 
             <h2>
-              Six ways to wear it.
+
+              {
+                generatorMode ===
+                'wardrobe'
+
+                  ? 'Your wardrobe, remixed.'
+
+                  : 'Six ways to wear it.'
+              }
+
             </h2>
 
 
@@ -699,9 +1258,15 @@ export default function OutfitApp() {
               {' '}
 
               <b>
-                {color.toLowerCase()}
-                {' '}
-                {item.toLowerCase()}
+                {
+                  selectedWardrobeItem &&
+                  generatorMode ===
+                    'wardrobe'
+
+                    ? selectedWardrobeItem.name
+
+                    : `${color.toLowerCase()} ${item.toLowerCase()}`
+                }
               </b>.
 
             </p>
@@ -720,9 +1285,7 @@ export default function OutfitApp() {
                     <div className="visual">
 
                       <span className="number">
-
                         0{i + 1}
-
                       </span>
 
 
@@ -756,13 +1319,11 @@ export default function OutfitApp() {
 
 
                       <button
-
                         className={
                           saved.includes(i)
                             ? 'heart saved'
                             : 'heart'
                         }
-
                         onClick={() =>
                           toggle(i)
                         }
@@ -782,16 +1343,12 @@ export default function OutfitApp() {
                     <div className="cardbody">
 
                       <div className="score">
-
                         {o.score}% MATCH
-
                       </div>
-
 
                       <h3>
                         {o.title}
                       </h3>
-
 
                       <p>
                         {o.note}
@@ -811,9 +1368,7 @@ export default function OutfitApp() {
         )}
 
 
-        {/* =================================================
-            HOW IT WORKS
-            ================================================= */}
+        {/* ABOUT */}
 
         <section
           id="about"
@@ -824,75 +1379,41 @@ export default function OutfitApp() {
             HOW IT WORKS
           </p>
 
-
           <h2>
             Less scrolling.
             <br />
             More wearing.
           </h2>
 
-
           <div className="three">
 
             <div>
-
-              <b>
-                01
-              </b>
-
-              <h3>
-                Pick a piece
-              </h3>
-
+              <b>01</b>
+              <h3>Pick a piece</h3>
               <p>
-
-                Choose something from
-                your wardrobe or add a
-                new garment.
-
+                Start with a garment
+                you actually own or
+                explore the MUSE catalog.
               </p>
-
             </div>
 
-
             <div>
-
-              <b>
-                02
-              </b>
-
-              <h3>
-                Set the mood
-              </h3>
-
+              <b>02</b>
+              <h3>Set the mood</h3>
               <p>
-
-                Tell Muse your style,
+                Tell MUSE your style,
                 occasion and season.
-
               </p>
-
             </div>
 
-
             <div>
-
-              <b>
-                03
-              </b>
-
-              <h3>
-                Get dressed
-              </h3>
-
+              <b>03</b>
+              <h3>Get dressed</h3>
               <p>
-
-                Our scoring engine ranks
-                color, style and silhouette
+                MUSE ranks color, style,
+                season and silhouette
                 compatibility.
-
               </p>
-
             </div>
 
           </div>
@@ -902,15 +1423,9 @@ export default function OutfitApp() {
       </main>
 
 
-      {/* ===================================================
-          FOOTER
-          =================================================== */}
-
       <footer>
 
-        <strong>
-          MUSE.
-        </strong>
+        <strong>MUSE.</strong>
 
         <span>
           Your personal outfit engine.
@@ -923,9 +1438,7 @@ export default function OutfitApp() {
       </footer>
 
 
-      {/* ===================================================
-          WARDROBE OVERLAY
-          =================================================== */}
+      {/* WARDROBE */}
 
       {wardrobeOpen && (
 
@@ -942,8 +1455,6 @@ export default function OutfitApp() {
               e.stopPropagation()
             }
           >
-
-            {/* HEADER */}
 
             <div className="wardrobeHeader">
 
@@ -982,8 +1493,6 @@ export default function OutfitApp() {
             </div>
 
 
-            {/* ADD BUTTON */}
-
             {!addingItem && (
 
               <button
@@ -992,15 +1501,11 @@ export default function OutfitApp() {
                   setAddingItem(true)
                 }
               >
-
                 + Add a garment
-
               </button>
 
             )}
 
-
-            {/* ADD ITEM FORM */}
 
             {addingItem && (
 
@@ -1014,24 +1519,18 @@ export default function OutfitApp() {
                 <label>
 
                   NAME
-                  <span>
-                    Optional
-                  </span>
+                  <span>Optional</span>
 
                   <input
-
                     value={newName}
-
                     onChange={e =>
                       setNewName(
                         e.target.value
                       )
                     }
-
                     placeholder={
                       `${newColor} ${newGarment}`
                     }
-
                   />
 
                 </label>
@@ -1042,17 +1541,18 @@ export default function OutfitApp() {
                   CATEGORY
 
                   <select
-
                     value={newCategory}
-
                     onChange={e =>
                       changeNewCategory(
-                        e.target.value as Cat
+                        e.target.value
+                          as Cat
                       )
                     }
                   >
 
-                    {(Object.keys(categories) as Cat[])
+                    {(Object.keys(
+                      categories
+                    ) as Cat[])
                       .map(c => (
 
                         <option
@@ -1073,9 +1573,7 @@ export default function OutfitApp() {
                   GARMENT
 
                   <select
-
                     value={newGarment}
-
                     onChange={e =>
                       setNewGarment(
                         e.target.value
@@ -1083,16 +1581,15 @@ export default function OutfitApp() {
                     }
                   >
 
-                    {categories[newCategory]
-                      .map(g => (
+                    {categories[
+                      newCategory
+                    ].map(g => (
 
-                        <option
-                          key={g}
-                        >
-                          {g}
-                        </option>
+                      <option key={g}>
+                        {g}
+                      </option>
 
-                      ))}
+                    ))}
 
                   </select>
 
@@ -1104,9 +1601,7 @@ export default function OutfitApp() {
                   COLOR
 
                   <select
-
                     value={newColor}
-
                     onChange={e =>
                       setNewColor(
                         e.target.value
@@ -1116,9 +1611,7 @@ export default function OutfitApp() {
 
                     {colors.map(c => (
 
-                      <option
-                        key={c}
-                      >
+                      <option key={c}>
                         {c}
                       </option>
 
@@ -1147,13 +1640,8 @@ export default function OutfitApp() {
                       addWardrobeItem
                     }
                   >
-
                     Add to wardrobe
-
-                    <span>
-                      →
-                    </span>
-
+                    <span>→</span>
                   </button>
 
                 </div>
@@ -1163,36 +1651,34 @@ export default function OutfitApp() {
             )}
 
 
-            {/* FILTERS */}
-
-            {!addingItem && wardrobe.length > 0 && (
+            {!addingItem &&
+              wardrobe.length > 0 && (
 
               <div className="wardrobeFilters">
 
                 {[
                   'All',
-                  ...Object.keys(categories)
+                  ...Object.keys(
+                    categories
+                  )
                 ].map(filter => (
 
                   <button
-
                     key={filter}
-
                     className={
-                      wardrobeFilter === filter
+                      wardrobeFilter ===
+                        filter
                         ? 'wardrobeFilter active'
                         : 'wardrobeFilter'
                     }
-
                     onClick={() =>
                       setWardrobeFilter(
-                        filter as 'All' | Cat
+                        filter as
+                          'All' | Cat
                       )
                     }
                   >
-
                     {filter}
-
                   </button>
 
                 ))}
@@ -1201,8 +1687,6 @@ export default function OutfitApp() {
 
             )}
 
-
-            {/* EMPTY STATE */}
 
             {!addingItem &&
               wardrobe.length === 0 && (
@@ -1218,12 +1702,9 @@ export default function OutfitApp() {
                 </h3>
 
                 <p>
-
                   Add pieces you actually
-                  own and use them as the
-                  starting point for your
-                  outfits.
-
+                  own and MUSE can build
+                  outfits from them.
                 </p>
 
                 <button
@@ -1232,21 +1713,14 @@ export default function OutfitApp() {
                     setAddingItem(true)
                   }
                 >
-
                   Add your first piece
-
-                  <span>
-                    →
-                  </span>
-
+                  <span>→</span>
                 </button>
 
               </div>
 
             )}
 
-
-            {/* WARDROBE GRID */}
 
             {!addingItem &&
               wardrobe.length > 0 && (
@@ -1276,11 +1750,9 @@ export default function OutfitApp() {
                         />
 
                         <span className="wardrobeCategory">
-
                           {
                             wardrobeItem.category
                           }
-
                         </span>
 
                       </div>
@@ -1289,16 +1761,12 @@ export default function OutfitApp() {
                       <div className="wardrobeCardBody">
 
                         <h3>
-
                           {
                             wardrobeItem.name
                           }
-
                         </h3>
 
-
                         <p>
-
                           {
                             wardrobeItem.color
                           }
@@ -1306,7 +1774,6 @@ export default function OutfitApp() {
                           {
                             wardrobeItem.garment
                           }
-
                         </p>
 
 
@@ -1320,13 +1787,8 @@ export default function OutfitApp() {
                               )
                             }
                           >
-
                             Style this
-
-                            <span>
-                              →
-                            </span>
-
+                            <span>→</span>
                           </button>
 
 
@@ -1339,9 +1801,7 @@ export default function OutfitApp() {
                             }
                             aria-label="Delete garment"
                           >
-
                             ×
-
                           </button>
 
                         </div>
@@ -1385,7 +1845,7 @@ const icons:
 
 
 /* =========================================================
-   COLOR SWATCH
+   SWATCH
    ========================================================= */
 
 function swatch(s: string) {
