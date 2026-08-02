@@ -1878,17 +1878,18 @@ setOutfits(
                     >
 
                       <i
-                        style={{
-                          background:
-                            swatch(
-                              profileColor
-                            )
-                        }}
-                      />
+  style={{
+    background: swatch(profileColor)
+  }}
+/>
 
-                      {profileColor}
+{profileColor}
 
-                    </button>
+<span>
+  {styleProfile.avoidedColors.includes(profileColor) ? '👎' : ''}
+</span>
+
+</button>
 
                   )
                 )}
@@ -2015,9 +2016,14 @@ setOutfits(
                       }
                     >
 
-                      {garmentName}
+                      >
+  {garmentName}
 
-                    </button>
+  <span>
+    {styleProfile.avoidedGarments.includes(garmentName) ? '👎' : ''}
+  </span>
+
+</button>
 
                   )
                 )}
