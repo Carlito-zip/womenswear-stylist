@@ -330,13 +330,14 @@ export default function OutfitApp() {
 
 
       const results =
-        generateWardrobeOutfits(
-          selectedWardrobeId,
-          wardrobe,
-          style,
-          occasion,
-          season
-        );
+  generateWardrobeOutfits(
+    selectedWardrobeId,
+    wardrobe,
+    style,
+    occasion,
+    season,
+    styleProfile
+  );
 
 
       setOutfits(results);
@@ -370,16 +371,16 @@ export default function OutfitApp() {
     } else {
 
       setOutfits(
-        generateOutfits(
-          category,
-          item,
-          color,
-          style,
-          occasion,
-          season
-        )
-      );
-    }
+  generateOutfits(
+    category,
+    item,
+    color,
+    style,
+    occasion,
+    season,
+    styleProfile
+  )
+);
 
 
     setTimeout(() => {
