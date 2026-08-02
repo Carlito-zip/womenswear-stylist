@@ -1543,10 +1543,7 @@ export default function OutfitApp() {
                   <select
                     value={newCategory}
                     onChange={e =>
-                      changeNewCategory(
-                        e.target.value
-                          as Cat
-                      )
+                      changeNewCategory(e.target.value as Cat)
                     }
                   >
 
