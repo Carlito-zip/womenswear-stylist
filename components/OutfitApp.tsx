@@ -370,18 +370,20 @@ export default function OutfitApp() {
 
     } else {
 
-      setOutfits(
-  generateOutfits(
-    category,
-    item,
-    color,
-    style,
-    occasion,
-    season,
-    styleProfile
-  )
-);
+setOutfits(
+        generateOutfits(
+          category,
+          item,
+          color,
+          style,
+          occasion,
+          season,
+          styleProfile
+        )
+      );
 
+    }      
+    
 
     setTimeout(() => {
 
