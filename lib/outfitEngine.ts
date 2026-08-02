@@ -7,10 +7,6 @@ import {
 } from './data';
 
 
-/* =========================================================
-   TYPES
-   ========================================================= */
-
 export type Outfit = {
   title: string;
   items: string[];
@@ -36,68 +32,79 @@ const palettes: Record<string, string[]> = {
 
   Cream: [
     'Black', 'Brown', 'Navy', 'Burgundy',
-    'Olive', 'Beige', 'Denim'
+    'Olive', 'Beige', 'Denim', 'White'
   ],
 
   Grey: [
-    'Black', 'White', 'Burgundy',
-    'Navy', 'Pink', 'Blue'
+    'Black', 'White', 'Burgundy', 'Navy',
+    'Pink', 'Blue', 'Cream', 'Beige'
   ],
 
   Navy: [
-    'White', 'Cream', 'Beige',
-    'Grey', 'Burgundy', 'Pink'
+    'White', 'Cream', 'Beige', 'Grey',
+    'Burgundy', 'Pink', 'Brown'
   ],
 
   Beige: [
-    'White', 'Brown', 'Black',
-    'Navy', 'Olive', 'Burgundy'
+    'White', 'Brown', 'Black', 'Navy',
+    'Olive', 'Burgundy', 'Cream'
   ],
 
   Brown: [
-    'Cream', 'White', 'Beige',
-    'Blue', 'Olive', 'Pink'
+    'Cream', 'White', 'Beige', 'Blue',
+    'Olive', 'Pink', 'Denim'
   ],
 
   Burgundy: [
-    'Cream', 'Black', 'Grey',
-    'Navy', 'Pink', 'Beige'
+    'Cream', 'Black', 'Grey', 'Navy',
+    'Pink', 'Beige', 'White'
   ],
 
   Red: [
     'Black', 'White', 'Cream',
-    'Navy', 'Denim'
+    'Navy', 'Denim', 'Grey'
   ],
 
   Pink: [
-    'White', 'Cream', 'Grey',
-    'Brown', 'Burgundy'
+    'White', 'Cream', 'Grey', 'Brown',
+    'Burgundy', 'Navy'
   ],
 
   Olive: [
-    'Cream', 'White', 'Black',
-    'Beige', 'Brown'
+    'Cream', 'White', 'Black', 'Beige',
+    'Brown', 'Navy'
   ],
 
   Green: [
     'White', 'Cream', 'Black',
-    'Navy', 'Brown'
+    'Navy', 'Brown', 'Beige'
   ],
 
   Blue: [
     'White', 'Cream', 'Brown',
-    'Grey', 'Black'
+    'Grey', 'Black', 'Beige'
   ],
 
   Denim: [
     'White', 'Cream', 'Black',
-    'Grey', 'Burgundy'
+    'Grey', 'Burgundy', 'Brown'
   ]
 };
 
 
+const neutrals = new Set([
+  'Black',
+  'White',
+  'Cream',
+  'Grey',
+  'Navy',
+  'Beige',
+  'Brown'
+]);
+
+
 /* =========================================================
-   OCCASION TARGET FORMALITY
+   OCCASION + SEASON TARGETS
    ========================================================= */
 
 const occasionFormality: Record<string, number> = {
@@ -110,10 +117,6 @@ const occasionFormality: Record<string, number> = {
 };
 
 
-/* =========================================================
-   SEASON TARGET WARMTH
-   ========================================================= */
-
 const seasonWarmth: Record<string, number> = {
   'All season': 3,
   Spring: 2.5,
@@ -124,55 +127,222 @@ const seasonWarmth: Record<string, number> = {
 
 
 /* =========================================================
-   COLOR SCORING
+   GARMENT HELPERS
    ========================================================= */
 
-function colorPairScore(
-  anchorColor: string,
-  otherColor: string
-): number {
+function byCategory(
+  category: Category
+): Garment[] {
 
-  if (anchorColor === otherColor) {
-    return 94;
-  }
-
-  const palette = palettes[anchorColor] || [];
-
-  const index = palette.indexOf(otherColor);
-
-  if (index === -1) {
-    return 62;
-  }
-
-  return Math.max(
-    76,
-    100 - index * 3
-  );
-}
-
-
-function outfitColorScore(
-  anchorColor: string,
-  colors: string[]
-): number {
-
-  if (!colors.length) {
-    return 75;
-  }
-
-  const scores = colors.map(color =>
-    colorPairScore(anchorColor, color)
-  );
-
-  return (
-    scores.reduce((a, b) => a + b, 0) /
-    scores.length
+  return garments.filter(
+    garment =>
+      garment.category === category
   );
 }
 
 
 /* =========================================================
-   STYLE SCORING
+   COLOR PAIR SCORING
+   ========================================================= */
+
+function colorPairScore(
+  colorA: string,
+  colorB: string
+): number {
+
+  // Monochromatic outfits
+  if (colorA === colorB) {
+    return 92;
+  }
+
+  const paletteA =
+    palettes[colorA] || [];
+
+  const paletteB =
+    palettes[colorB] || [];
+
+  const indexA =
+    paletteA.indexOf(colorB);
+
+  const indexB =
+    paletteB.indexOf(colorA);
+
+  /*
+    Check compatibility in BOTH directions.
+    This avoids the palette system being
+    accidentally one-sided.
+  */
+
+  if (
+    indexA !== -1 ||
+    indexB !== -1
+  ) {
+
+    const bestIndex =
+      Math.min(
+        indexA === -1
+          ? 99
+          : indexA,
+
+        indexB === -1
+          ? 99
+          : indexB
+      );
+
+    return Math.max(
+      78,
+      100 - bestIndex * 3
+    );
+  }
+
+  /*
+    Neutral + neutral is usually safe.
+  */
+
+  if (
+    neutrals.has(colorA) &&
+    neutrals.has(colorB)
+  ) {
+    return 82;
+  }
+
+  /*
+    Neutral + statement color is
+    generally still wearable.
+  */
+
+  if (
+    neutrals.has(colorA) ||
+    neutrals.has(colorB)
+  ) {
+    return 74;
+  }
+
+  return 58;
+}
+
+
+/* =========================================================
+   WHOLE OUTFIT COLOR SCORE
+   ========================================================= */
+
+function outfitColorScore(
+  colors: string[]
+): number {
+
+  if (colors.length <= 1) {
+    return 100;
+  }
+
+  let total = 0;
+  let comparisons = 0;
+
+  /*
+    Compare EVERY color against every
+    other color.
+
+    Example:
+
+    Grey coat
+       ↕
+    Cream sweater
+       ↕
+    Black trousers
+       ↕
+    Burgundy loafers
+
+    This is much better than only
+    comparing everything to the coat.
+  */
+
+  for (
+    let i = 0;
+    i < colors.length;
+    i++
+  ) {
+
+    for (
+      let j = i + 1;
+      j < colors.length;
+      j++
+    ) {
+
+      total += colorPairScore(
+        colors[i],
+        colors[j]
+      );
+
+      comparisons++;
+    }
+  }
+
+  let score =
+    total / comparisons;
+
+
+  /*
+    COLOR BALANCE
+
+    Too many unrelated statement colors
+    can make an outfit visually noisy.
+  */
+
+  const statementColors =
+    colors.filter(
+      color =>
+        !neutrals.has(color)
+    );
+
+  const uniqueStatementColors =
+    new Set(statementColors);
+
+
+  if (
+    uniqueStatementColors.size >= 3
+  ) {
+    score -= 8;
+  }
+
+
+  /*
+    Reward outfits that use at least
+    one neutral as an anchor.
+  */
+
+  if (
+    colors.some(
+      color =>
+        neutrals.has(color)
+    )
+  ) {
+    score += 3;
+  }
+
+
+  /*
+    Reward intentional tonal dressing.
+  */
+
+  const uniqueColors =
+    new Set(colors);
+
+  if (
+    uniqueColors.size <= 2 &&
+    colors.length >= 3
+  ) {
+    score += 4;
+  }
+
+
+  return Math.max(
+    45,
+    Math.min(100, score)
+  );
+}
+
+
+/* =========================================================
+   STYLE SCORE
    ========================================================= */
 
 function styleScore(
@@ -180,24 +350,24 @@ function styleScore(
   style: Style
 ): number {
 
-  if (!outfit.length) {
-    return 50;
-  }
-
-  const scores = outfit.map(
-    garment => garment.styles[style] || 3
-  );
+  const scores =
+    outfit.map(
+      garment =>
+        garment.styles[style] || 3
+    );
 
   const average =
-    scores.reduce((a, b) => a + b, 0) /
-    scores.length;
+    scores.reduce(
+      (a, b) => a + b,
+      0
+    ) / scores.length;
 
   return average * 20;
 }
 
 
 /* =========================================================
-   FORMALITY SCORING
+   FORMALITY SCORE
    ========================================================= */
 
 function formalityScore(
@@ -206,40 +376,49 @@ function formalityScore(
 ): number {
 
   const target =
-    occasionFormality[occasion] ?? 3;
+    occasionFormality[
+      occasion
+    ] ?? 3;
 
   const average =
     outfit.reduce(
       (sum, garment) =>
-        sum + garment.formality,
+        sum +
+        garment.formality,
       0
     ) / outfit.length;
 
   const difference =
-    Math.abs(target - average);
+    Math.abs(
+      target - average
+    );
 
   return Math.max(
-    45,
+    40,
     100 - difference * 18
   );
 }
 
 
 /* =========================================================
-   SEASON SCORING
+   SEASON SCORE
    ========================================================= */
 
-function warmthScore(
+function seasonScore(
   outfit: Garment[],
   season: string
 ): number {
 
-  if (season === 'All season') {
+  if (
+    season === 'All season'
+  ) {
     return 88;
   }
 
   const target =
-    seasonWarmth[season] ?? 3;
+    seasonWarmth[
+      season
+    ] ?? 3;
 
   const average =
     outfit.reduce(
@@ -249,17 +428,19 @@ function warmthScore(
     ) / outfit.length;
 
   const difference =
-    Math.abs(target - average);
+    Math.abs(
+      target - average
+    );
 
   return Math.max(
-    40,
+    35,
     100 - difference * 20
   );
 }
 
 
 /* =========================================================
-   SILHOUETTE SCORING
+   SILHOUETTE SCORE
    ========================================================= */
 
 function silhouetteScore(
@@ -268,48 +449,52 @@ function silhouetteScore(
 
   let score = 88;
 
-  const widePieces =
+  const wide =
     outfit.filter(
       garment =>
         garment.volume === 'Wide'
     ).length;
 
-  const slimPieces =
+  const slim =
     outfit.filter(
       garment =>
         garment.volume === 'Slim'
     ).length;
 
-  const oversizedPieces =
+  const oversized =
     outfit.filter(
       garment =>
         garment.fit === 'Oversized'
     ).length;
 
-  /*
-    Too many wide / oversized pieces can
-    make the outfit visually heavy.
-  */
-
-  if (widePieces >= 3) {
-    score -= 18;
-  }
-
-  if (oversizedPieces >= 2) {
-    score -= 12;
-  }
 
   /*
-    Wide + slim creates intentional
-    silhouette contrast.
+    Wide + slim often produces
+    intentional visual balance.
   */
 
   if (
-    widePieces >= 1 &&
-    slimPieces >= 1
+    wide >= 1 &&
+    slim >= 1
   ) {
     score += 10;
   }
+
+
+  /*
+    Too much volume can overwhelm
+    the silhouette.
+  */
+
+  if (wide >= 3) {
+    score -= 15;
+  }
+
+
+  if (oversized >= 2) {
+    score -= 12;
+  }
+
 
   return Math.max(
     50,
@@ -319,13 +504,12 @@ function silhouetteScore(
 
 
 /* =========================================================
-   TOTAL SCORE
+   COMPLETE OUTFIT SCORE
    ========================================================= */
 
 function calculateScore(
   outfit: Garment[],
-  anchorColor: string,
-  colors: string[],
+  outfitColors: string[],
   style: Style,
   occasion: string,
   season: string
@@ -333,8 +517,7 @@ function calculateScore(
 
   const color =
     outfitColorScore(
-      anchorColor,
-      colors
+      outfitColors
     );
 
   const styling =
@@ -350,68 +533,211 @@ function calculateScore(
     );
 
   const seasonal =
-    warmthScore(
+    seasonScore(
       outfit,
       season
     );
 
   const silhouette =
-    silhouetteScore(outfit);
+    silhouetteScore(
+      outfit
+    );
+
 
   /*
-    Weighting system:
+    RECOMMENDATION WEIGHTS
 
-    Color       30%
-    Style       25%
-    Formality   20%
-    Season      15%
-    Silhouette  10%
+    Color        30%
+    Style        25%
+    Formality    20%
+    Season       15%
+    Silhouette   10%
   */
 
-  const score =
+  const total =
     color * 0.30 +
     styling * 0.25 +
     formality * 0.20 +
     seasonal * 0.15 +
     silhouette * 0.10;
 
+
   return Math.round(
     Math.max(
       0,
-      Math.min(100, score)
+      Math.min(100, total)
     )
   );
 }
 
 
 /* =========================================================
-   HELPERS
+   COLOR CANDIDATES
    ========================================================= */
 
-function byCategory(
-  category: Category
-): Garment[] {
+function getCandidateColors(
+  anchorColor: string
+): string[] {
 
-  return garments.filter(
-    garment =>
-      garment.category === category
+  const palette =
+    palettes[anchorColor] || [];
+
+  /*
+    Limit the search to strong colors.
+
+    Searching all 14 colors for every
+    garment would create an unnecessarily
+    huge search space.
+
+    Anchor + best palette options gives us
+    plenty of variation.
+  */
+
+  return Array.from(
+    new Set([
+      anchorColor,
+      ...palette.slice(0, 6)
+    ])
   );
 }
 
 
-function chooseColor(
-  palette: string[],
+/* =========================================================
+   GENERATE COLOR COMBINATIONS
+   ========================================================= */
+
+function generateColorCombinations(
+  anchorColor: string,
+  otherPieceCount: number
+): string[][] {
+
+  const candidates =
+    getCandidateColors(
+      anchorColor
+    );
+
+  const results:
+    string[][] = [];
+
+
+  function build(
+    current: string[],
+    depth: number
+  ) {
+
+    if (
+      depth ===
+      otherPieceCount
+    ) {
+
+      results.push([
+        anchorColor,
+        ...current
+      ]);
+
+      return;
+    }
+
+
+    for (
+      const color of candidates
+    ) {
+
+      build(
+        [...current, color],
+        depth + 1
+      );
+    }
+  }
+
+
+  build([], 0);
+
+  return results;
+}
+
+
+/* =========================================================
+   TITLES
+   ========================================================= */
+
+function createTitle(
+  style: Style,
+  score: number,
   index: number
 ): string {
 
-  return palette[
-    index % palette.length
+  if (score >= 92) {
+
+    const names = [
+      `${style} Essential`,
+      'Best Match',
+      'Styled Harmony',
+      'Editor Pick'
+    ];
+
+    return names[
+      index % names.length
+    ];
+  }
+
+
+  const names = [
+    'Polished Contrast',
+    'Tonal Balance',
+    'Easy Layers',
+    'Modern Mix',
+    'Clean Silhouette',
+    'Effortless Edit'
+  ];
+
+
+  return names[
+    index % names.length
   ];
 }
 
 
 /* =========================================================
-   GENERATOR
+   EXPLANATION
+   ========================================================= */
+
+function createNote(
+  pieces: Garment[],
+  colors: string[],
+  style: Style,
+  occasion: string,
+  season: string
+): string {
+
+  const colorScore =
+    Math.round(
+      outfitColorScore(
+        colors
+      )
+    );
+
+  const styleMatch =
+    Math.round(
+      styleScore(
+        pieces,
+        style
+      )
+    );
+
+
+  return (
+    `${style} styling · ` +
+    `${colorScore}% color harmony · ` +
+    `${styleMatch}% style match · ` +
+    `balanced for ${occasion.toLowerCase()} ` +
+    `and ${season.toLowerCase()}.`
+  );
+}
+
+
+/* =========================================================
+   MAIN GENERATOR
    ========================================================= */
 
 export function generateOutfits(
@@ -430,12 +756,10 @@ export function generateOutfits(
     return [];
   }
 
+
   const selectedStyle =
     style as Style;
 
-  const palette =
-    palettes[color] ||
-    ['White', 'Black', 'Cream'];
 
   const tops =
     byCategory('Top');
@@ -443,116 +767,44 @@ export function generateOutfits(
   const bottoms =
     byCategory('Bottom');
 
-  const dresses =
-    byCategory('Dress');
-
   const outerwear =
     byCategory('Outerwear');
 
   const shoes =
     byCategory('Shoes');
 
-  const candidates: Outfit[] = [];
 
-  let candidateIndex = 0;
+  /*
+    First generate garment structures.
+  */
 
+  const structures:
+    Garment[][] = [];
 
-  /* =======================================================
-     NORMAL OUTFIT BUILDER
-     ======================================================= */
-
-  function addCandidate(
-    pieces: Garment[]
-  ) {
-
-    /*
-      Never allow two pieces from
-      the same structural category,
-      except where intentionally supplied.
-    */
-
-    const generatedColors =
-      pieces
-        .slice(1)
-        .map((_, index) =>
-          chooseColor(
-            palette,
-            candidateIndex + index
-          )
-        );
-
-    const displayItems =
-      pieces.map(
-        (piece, index) => {
-
-          if (index === 0) {
-            return `${color} ${piece.name}`;
-          }
-
-          return `${
-            generatedColors[index - 1]
-          } ${piece.name}`;
-        }
-      );
-
-    const score =
-      calculateScore(
-        pieces,
-        color,
-        generatedColors,
-        selectedStyle,
-        occasion,
-        season
-      );
-
-    candidates.push({
-      title: createTitle(
-        selectedStyle,
-        score,
-        candidateIndex
-      ),
-
-      items: displayItems,
-
-      score,
-
-      note: createNote(
-        pieces,
-        selectedStyle,
-        occasion,
-        season
-      )
-    });
-
-    candidateIndex++;
-  }
-
-
-  /* =======================================================
-     BUILD COMBINATIONS
-     ======================================================= */
 
   if (category === 'Top') {
 
-    for (const bottom of bottoms) {
-      for (const shoe of shoes) {
+    for (
+      const bottom of bottoms
+    ) {
 
-        /*
-          Some outfits intentionally have
-          no outerwear.
-        */
+      for (
+        const shoe of shoes
+      ) {
 
-        addCandidate([
+        structures.push([
           anchor,
           bottom,
           shoe
         ]);
 
+
         for (
-          const jacket of outerwear
+          const jacket
+          of outerwear
         ) {
 
-          addCandidate([
+          structures.push([
             anchor,
             bottom,
             shoe,
@@ -564,22 +816,31 @@ export function generateOutfits(
   }
 
 
-  else if (category === 'Bottom') {
+  else if (
+    category === 'Bottom'
+  ) {
 
-    for (const top of tops) {
-      for (const shoe of shoes) {
+    for (
+      const top of tops
+    ) {
 
-        addCandidate([
+      for (
+        const shoe of shoes
+      ) {
+
+        structures.push([
           anchor,
           top,
           shoe
         ]);
 
+
         for (
-          const jacket of outerwear
+          const jacket
+          of outerwear
         ) {
 
-          addCandidate([
+          structures.push([
             anchor,
             top,
             shoe,
@@ -591,24 +852,32 @@ export function generateOutfits(
   }
 
 
-  else if (category === 'Shoes') {
+  else if (
+    category === 'Shoes'
+  ) {
 
-    for (const top of tops) {
+    for (
+      const top of tops
+    ) {
+
       for (
-        const bottom of bottoms
+        const bottom
+        of bottoms
       ) {
 
-        addCandidate([
+        structures.push([
           anchor,
           top,
           bottom
         ]);
 
+
         for (
-          const jacket of outerwear
+          const jacket
+          of outerwear
         ) {
 
-          addCandidate([
+          structures.push([
             anchor,
             top,
             bottom,
@@ -625,21 +894,24 @@ export function generateOutfits(
   ) {
 
     /*
-      Important:
-      because the anchor is already
-      outerwear, NEVER add another
-      outerwear piece.
+      Selected item is already outerwear.
+      No second jacket can be generated.
     */
 
-    for (const top of tops) {
+    for (
+      const top of tops
+    ) {
+
       for (
-        const bottom of bottoms
+        const bottom
+        of bottoms
       ) {
+
         for (
           const shoe of shoes
         ) {
 
-          addCandidate([
+          structures.push([
             anchor,
             top,
             bottom,
@@ -651,25 +923,26 @@ export function generateOutfits(
   }
 
 
-  else if (category === 'Dress') {
+  else if (
+    category === 'Dress'
+  ) {
 
-    /*
-      A dress replaces the normal
-      top + bottom structure.
-    */
+    for (
+      const shoe of shoes
+    ) {
 
-    for (const shoe of shoes) {
-
-      addCandidate([
+      structures.push([
         anchor,
         shoe
       ]);
 
+
       for (
-        const jacket of outerwear
+        const jacket
+        of outerwear
       ) {
 
-        addCandidate([
+        structures.push([
           anchor,
           shoe,
           jacket
@@ -680,12 +953,120 @@ export function generateOutfits(
 
 
   /* =======================================================
+     SEARCH GARMENTS + COLORS
+     ======================================================= */
+
+  const candidates:
+    Outfit[] = [];
+
+  let index = 0;
+
+
+  for (
+    const structure
+    of structures
+  ) {
+
+    const colorCombinations =
+      generateColorCombinations(
+        color,
+        structure.length - 1
+      );
+
+
+    /*
+      Instead of keeping every possible
+      color combination, score them and
+      keep the best few for this garment
+      structure.
+    */
+
+    const scoredColors =
+      colorCombinations
+        .map(colors => ({
+          colors,
+
+          score:
+            outfitColorScore(
+              colors
+            )
+        }))
+
+        .sort(
+          (a, b) =>
+            b.score - a.score
+        )
+
+        .slice(0, 4);
+
+
+    for (
+      const colorOption
+      of scoredColors
+    ) {
+
+      const score =
+        calculateScore(
+          structure,
+          colorOption.colors,
+          selectedStyle,
+          occasion,
+          season
+        );
+
+
+      const items =
+        structure.map(
+          (piece, pieceIndex) =>
+            `${
+              colorOption
+                .colors[
+                  pieceIndex
+                ]
+            } ${piece.name}`
+        );
+
+
+      candidates.push({
+
+        title:
+          createTitle(
+            selectedStyle,
+            score,
+            index
+          ),
+
+        items,
+
+        score,
+
+        note:
+          createNote(
+            structure,
+            colorOption.colors,
+            selectedStyle,
+            occasion,
+            season
+          )
+      });
+
+
+      index++;
+    }
+  }
+
+
+  /* =======================================================
      REMOVE DUPLICATES
      ======================================================= */
 
+  const seen =
+    new Set<string>();
+
+
   const unique =
     candidates.filter(
-      (outfit, index, array) => {
+      outfit => {
 
         const key =
           outfit.items
@@ -693,105 +1074,85 @@ export function generateOutfits(
             .sort()
             .join('|');
 
-        return (
-          array.findIndex(other =>
-            other.items
-              .slice()
-              .sort()
-              .join('|') === key
-          ) === index
-        );
+
+        if (
+          seen.has(key)
+        ) {
+          return false;
+        }
+
+
+        seen.add(key);
+
+        return true;
       }
     );
 
 
   /* =======================================================
-     RANK OUTFITS
+     PREVENT SIX NEAR-IDENTICAL RESULTS
      ======================================================= */
 
-  return unique
-    .sort(
+  const ranked =
+    unique.sort(
       (a, b) =>
         b.score - a.score
-    )
-    .slice(0, 6);
-}
+    );
 
 
-/* =========================================================
-   TITLES
-   ========================================================= */
+  const final:
+    Outfit[] = [];
 
-function createTitle(
-  style: Style,
-  score: number,
-  index: number
-): string {
-
-  const strong = [
-    `${style} Essential`,
-    'Best Match',
-    'Refined Balance',
-    'Styled Harmony'
-  ];
-
-  const normal = [
-    'Polished Contrast',
-    'Easy Layers',
-    'Modern Mix',
-    'Clean Silhouette',
-    'Elevated Essential',
-    'Effortless Edit'
-  ];
-
-  const options =
-    score >= 90
-      ? strong
-      : normal;
-
-  return options[
-    index % options.length
-  ];
-}
+  const usedGarmentSets =
+    new Set<string>();
 
 
-/* =========================================================
-   EXPLANATIONS
-   ========================================================= */
-
-function createNote(
-  pieces: Garment[],
-  style: Style,
-  occasion: string,
-  season: string
-): string {
-
-  const averageFormality =
-    pieces.reduce(
-      (sum, piece) =>
-        sum + piece.formality,
-      0
-    ) / pieces.length;
-
-  let formalityText =
-    'balanced';
-
-  if (averageFormality >= 4) {
-    formalityText =
-      'polished';
-  }
-
-  else if (
-    averageFormality <= 2
+  for (
+    const outfit
+    of ranked
   ) {
-    formalityText =
-      'relaxed';
+
+    /*
+      Ignore colors here so the top six
+      don't become the exact same garments
+      in six slightly different colors.
+    */
+
+    const garmentKey =
+      outfit.items
+        .map(item =>
+          item.replace(
+            /^(Black|White|Cream|Grey|Navy|Beige|Brown|Burgundy|Red|Pink|Olive|Green|Blue|Denim)\s/,
+            ''
+          )
+        )
+        .sort()
+        .join('|');
+
+
+    if (
+      usedGarmentSets.has(
+        garmentKey
+      )
+    ) {
+      continue;
+    }
+
+
+    usedGarmentSets.add(
+      garmentKey
+    );
+
+    final.push(outfit);
+
+
+    if (
+      final.length === 6
+    ) {
+      break;
+    }
   }
 
-  return (
-    `${formalityText} ${style.toLowerCase()} styling ` +
-    `for ${occasion.toLowerCase()}, ` +
-    `with silhouette and warmth balanced ` +
-    `for ${season.toLowerCase()}.`
-  );
+
+  return final;
 }
