@@ -938,3 +938,239 @@ footer {
   }
 
 }
+/* =========================================================
+   GENERATOR MODE
+   ========================================================= */
+
+.generatorModes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 35px 0 25px;
+}
+
+.generatorMode {
+  min-height: 95px;
+  border: 1px solid #55554f;
+  background: transparent;
+  color: #aaa79e;
+  text-align: left;
+  padding: 18px 20px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 7px;
+}
+
+.generatorMode strong {
+  font-family: Georgia, serif;
+  font-size: 20px;
+  font-weight: 400;
+  color: #f4f0e8;
+}
+
+.generatorMode span {
+  font-size: 11px;
+}
+
+.generatorMode.active {
+  background: #eee9df;
+  border-color: #eee9df;
+  color: #69645d;
+}
+
+.generatorMode.active strong {
+  color: #1d1d1a;
+}
+
+
+/* =========================================================
+   WARDROBE STYLER
+   ========================================================= */
+
+.wardrobeStyler {
+  margin: 25px 0;
+}
+
+.wardrobeStyler > label {
+  display: block;
+  max-width: 520px;
+}
+
+.wardrobeStylerEmpty {
+  border: 1px solid #55554f;
+  padding: 28px;
+}
+
+.wardrobeStylerEmpty h3 {
+  font-family: Georgia, serif;
+  font-size: 27px;
+  font-weight: 400;
+  margin: 0 0 8px;
+}
+
+.wardrobeStylerEmpty p {
+  color: #aaa79e;
+  line-height: 1.6;
+  max-width: 500px;
+}
+
+.wardrobeStylerEmpty .wardrobeAdd {
+  color: #f4f0e8;
+  border-color: #77766f;
+  margin: 15px 0 0;
+  max-width: 320px;
+}
+
+
+/* =========================================================
+   SELECTED WARDROBE PIECE
+   ========================================================= */
+
+.selectedWardrobePiece {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid #55554f;
+  max-width: 520px;
+}
+
+.selectedWardrobePiece i {
+  width: 54px;
+  height: 54px;
+  min-width: 54px;
+  border-radius: 50%;
+  border: 1px solid #77766f;
+}
+
+.selectedWardrobePiece div {
+  display: flex;
+  flex-direction: column;
+}
+
+.selectedWardrobePiece span {
+  color: #a66358;
+  font-size: 8px;
+  letter-spacing: 2px;
+  margin-bottom: 6px;
+}
+
+.selectedWardrobePiece strong {
+  font-family: Georgia, serif;
+  font-size: 20px;
+  font-weight: 400;
+}
+
+.selectedWardrobePiece p {
+  margin: 5px 0 0;
+  color: #aaa79e;
+  font-size: 11px;
+}
+
+
+/* =========================================================
+   COMMON SETTINGS
+   ========================================================= */
+
+.wardrobeSettings {
+  grid-template-columns:
+    repeat(3, 1fr);
+}
+
+
+/* =========================================================
+   GENERATOR MESSAGE
+   ========================================================= */
+
+.generatorMessage {
+  border: 1px solid #6d665e;
+  margin: 20px 0;
+  padding: 15px 17px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  color: #ccc7bd;
+}
+
+.generatorMessage > span {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  border: 1px solid #a66358;
+  color: #a66358;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: Georgia, serif;
+  font-size: 13px;
+}
+
+.generatorMessage p {
+  flex: 1;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.generatorMessage button {
+  border: 0;
+  background: none;
+  color: #f4f0e8;
+  cursor: pointer;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.generate:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 800px) {
+
+  .generatorModes {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .generatorMode {
+    min-height: 105px;
+    padding: 15px;
+  }
+
+  .generatorMode strong {
+    font-size: 18px;
+  }
+
+  .wardrobeSettings {
+    grid-template-columns: 1fr;
+  }
+
+  .generatorMessage {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .generatorMessage button {
+    width: 100%;
+    text-align: left;
+    padding-left: 37px;
+  }
+
+}
+
+@media (max-width: 480px) {
+
+  .generatorModes {
+    grid-template-columns: 1fr;
+  }
+
+}
