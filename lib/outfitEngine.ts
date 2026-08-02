@@ -1363,3 +1363,882 @@ export function generateOutfits(
     })
   );
 }
+/* =========================================================
+   WARDROBE GENERATOR
+   ========================================================= */
+
+export type WardrobeGarment = {
+  id: string;
+  name: string;
+  category: Category;
+  garment: string;
+  color: string;
+  createdAt?: number;
+};
+
+type WardrobeCandidate = {
+  outfit: Outfit;
+  ids: string[];
+  colors: string[];
+  pieces: Garment[];
+};
+
+
+/* =========================================================
+   CONVERT WARDROBE ITEM TO ENGINE GARMENT
+   ========================================================= */
+
+function wardrobeToGarment(
+  wardrobeItem: WardrobeGarment
+): Garment | null {
+
+  const garment =
+    getGarment(
+      wardrobeItem.garment
+    );
+
+  return garment || null;
+}
+
+
+/* =========================================================
+   BUILD WARDROBE STRUCTURES
+   ========================================================= */
+
+function buildWardrobeStructures(
+  anchorItem: WardrobeGarment,
+  wardrobe: WardrobeGarment[]
+): WardrobeGarment[][] {
+
+  /*
+    Never allow the anchor item to appear
+    twice in the same outfit.
+  */
+
+  const available =
+    wardrobe.filter(
+      item =>
+        item.id !== anchorItem.id
+    );
+
+
+  const tops =
+    available.filter(
+      item =>
+        item.category === 'Top'
+    );
+
+
+  const bottoms =
+    available.filter(
+      item =>
+        item.category === 'Bottom'
+    );
+
+
+  const shoes =
+    available.filter(
+      item =>
+        item.category === 'Shoes'
+    );
+
+
+  const outerwear =
+    available.filter(
+      item =>
+        item.category === 'Outerwear'
+    );
+
+
+  const structures:
+    WardrobeGarment[][] = [];
+
+
+  /* -------------------------------------------------------
+     TOP ANCHOR
+     ------------------------------------------------------- */
+
+  if (
+    anchorItem.category === 'Top'
+  ) {
+
+    for (
+      const bottom of bottoms
+    ) {
+
+      for (
+        const shoe of shoes
+      ) {
+
+        /*
+          Basic outfit:
+          top + bottom + shoes
+        */
+
+        structures.push([
+          anchorItem,
+          bottom,
+          shoe
+        ]);
+
+
+        /*
+          Layered outfit:
+          top + bottom + shoes + outerwear
+        */
+
+        for (
+          const outer of outerwear
+        ) {
+
+          structures.push([
+            anchorItem,
+            bottom,
+            shoe,
+            outer
+          ]);
+        }
+      }
+    }
+  }
+
+
+  /* -------------------------------------------------------
+     BOTTOM ANCHOR
+     ------------------------------------------------------- */
+
+  else if (
+    anchorItem.category === 'Bottom'
+  ) {
+
+    for (
+      const top of tops
+    ) {
+
+      for (
+        const shoe of shoes
+      ) {
+
+        structures.push([
+          anchorItem,
+          top,
+          shoe
+        ]);
+
+
+        for (
+          const outer of outerwear
+        ) {
+
+          structures.push([
+            anchorItem,
+            top,
+            shoe,
+            outer
+          ]);
+        }
+      }
+    }
+  }
+
+
+  /* -------------------------------------------------------
+     SHOES ANCHOR
+     ------------------------------------------------------- */
+
+  else if (
+    anchorItem.category === 'Shoes'
+  ) {
+
+    for (
+      const top of tops
+    ) {
+
+      for (
+        const bottom of bottoms
+      ) {
+
+        structures.push([
+          anchorItem,
+          top,
+          bottom
+        ]);
+
+
+        for (
+          const outer of outerwear
+        ) {
+
+          structures.push([
+            anchorItem,
+            top,
+            bottom,
+            outer
+          ]);
+        }
+      }
+    }
+  }
+
+
+  /* -------------------------------------------------------
+     OUTERWEAR ANCHOR
+     ------------------------------------------------------- */
+
+  else if (
+    anchorItem.category === 'Outerwear'
+  ) {
+
+    for (
+      const top of tops
+    ) {
+
+      for (
+        const bottom of bottoms
+      ) {
+
+        for (
+          const shoe of shoes
+        ) {
+
+          structures.push([
+            anchorItem,
+            top,
+            bottom,
+            shoe
+          ]);
+        }
+      }
+    }
+  }
+
+
+  /* -------------------------------------------------------
+     DRESS ANCHOR
+     ------------------------------------------------------- */
+
+  else if (
+    anchorItem.category === 'Dress'
+  ) {
+
+    for (
+      const shoe of shoes
+    ) {
+
+      /*
+        Dress + shoes
+      */
+
+      structures.push([
+        anchorItem,
+        shoe
+      ]);
+
+
+      /*
+        Dress + shoes + outerwear
+      */
+
+      for (
+        const outer of outerwear
+      ) {
+
+        structures.push([
+          anchorItem,
+          shoe,
+          outer
+        ]);
+      }
+    }
+  }
+
+
+  return structures;
+}
+
+
+/* =========================================================
+   WARDROBE SIGNATURES
+   ========================================================= */
+
+function wardrobeGarmentSignature(
+  candidate: WardrobeCandidate
+): string {
+
+  return candidate.ids
+    .slice()
+    .sort()
+    .join('|');
+}
+
+
+function wardrobeColorSignature(
+  candidate: WardrobeCandidate
+): string {
+
+  return candidate.colors
+    .slice()
+    .sort()
+    .join('|');
+}
+
+
+function wardrobeTopBottomSignature(
+  candidate: WardrobeCandidate
+): string {
+
+  const parts: string[] = [];
+
+
+  candidate.pieces.forEach(
+    (piece, index) => {
+
+      if (
+        piece.category === 'Top' ||
+        piece.category === 'Bottom'
+      ) {
+
+        parts.push(
+          `${piece.category}:${candidate.colors[index]}`
+        );
+      }
+    }
+  );
+
+
+  return parts
+    .sort()
+    .join('|');
+}
+
+
+/* =========================================================
+   WARDROBE DIVERSITY PICKER
+   ========================================================= */
+
+function chooseWardrobeCandidate(
+  candidates: WardrobeCandidate[],
+  used: WardrobeCandidate[],
+  test?: (
+    candidate: WardrobeCandidate
+  ) => boolean
+): WardrobeCandidate | undefined {
+
+  const pool =
+    test
+      ? candidates.filter(test)
+      : candidates;
+
+
+  for (
+    const candidate of pool
+  ) {
+
+    const garmentKey =
+      wardrobeGarmentSignature(
+        candidate
+      );
+
+
+    const colorKey =
+      wardrobeColorSignature(
+        candidate
+      );
+
+
+    const topBottomKey =
+      wardrobeTopBottomSignature(
+        candidate
+      );
+
+
+    const tooSimilar =
+      used.some(previous => {
+
+        /*
+          Don't return exactly the same
+          physical garments twice.
+        */
+
+        if (
+          wardrobeGarmentSignature(
+            previous
+          ) === garmentKey
+        ) {
+          return true;
+        }
+
+
+        /*
+          Avoid identical complete palettes.
+        */
+
+        if (
+          wardrobeColorSignature(
+            previous
+          ) === colorKey
+        ) {
+          return true;
+        }
+
+
+        /*
+          Avoid repeating the same
+          top/bottom color formula when
+          other options are available.
+        */
+
+        if (
+          topBottomKey &&
+          wardrobeTopBottomSignature(
+            previous
+          ) === topBottomKey
+        ) {
+          return true;
+        }
+
+
+        return false;
+      });
+
+
+    if (!tooSimilar) {
+      return candidate;
+    }
+  }
+
+
+  return undefined;
+}
+
+
+/* =========================================================
+   WARDROBE GENERATOR
+   ========================================================= */
+
+export function generateWardrobeOutfits(
+  anchorId: string,
+  wardrobe: WardrobeGarment[],
+  style: string,
+  occasion: string,
+  season: string
+): Outfit[] {
+
+  /*
+    Find the exact physical item the user
+    selected from My Wardrobe.
+  */
+
+  const anchorItem =
+    wardrobe.find(
+      item =>
+        item.id === anchorId
+    );
+
+
+  if (!anchorItem) {
+    return [];
+  }
+
+
+  const selectedStyle =
+    style as Style;
+
+
+  const structures =
+    buildWardrobeStructures(
+      anchorItem,
+      wardrobe
+    );
+
+
+  const candidates:
+    WardrobeCandidate[] = [];
+
+
+  /* =======================================================
+     SCORE REAL WARDROBE COMBINATIONS
+     ======================================================= */
+
+  for (
+    const structure of structures
+  ) {
+
+    /*
+      Convert wardrobe entries into the
+      garment metadata used by the normal
+      MUSE scoring engine.
+    */
+
+    const enginePieces =
+      structure.map(
+        wardrobeItem =>
+          wardrobeToGarment(
+            wardrobeItem
+          )
+      );
+
+
+    /*
+      If an old/corrupt wardrobe item no
+      longer exists in data.ts, skip it.
+    */
+
+    if (
+      enginePieces.some(
+        piece => !piece
+      )
+    ) {
+      continue;
+    }
+
+
+    const pieces =
+      enginePieces as Garment[];
+
+
+    /*
+      IMPORTANT:
+
+      Unlike catalog generation, these
+      colors are NEVER generated.
+
+      They are the actual colors stored
+      in My Wardrobe.
+    */
+
+    const realColors =
+      structure.map(
+        wardrobeItem =>
+          wardrobeItem.color
+      );
+
+
+    const score =
+      calculateScore(
+        pieces,
+        realColors,
+        anchorItem.color,
+        selectedStyle,
+        occasion,
+        season
+      );
+
+
+    const harmony =
+      Math.round(
+        colorScore(
+          realColors,
+          pieces,
+          anchorItem.color
+        )
+      );
+
+
+    const styleMatch =
+      Math.round(
+        styleScore(
+          pieces,
+          selectedStyle
+        )
+      );
+
+
+    /*
+      Use the user's custom wardrobe name
+      where available.
+
+      Example:
+
+      "My vintage blazer"
+
+      instead of merely:
+
+      "Black Blazer"
+    */
+
+    const displayItems =
+      structure.map(
+        wardrobeItem => {
+
+          const defaultName =
+            `${wardrobeItem.color} ${wardrobeItem.garment}`;
+
+
+          if (
+            wardrobeItem.name &&
+            wardrobeItem.name !== defaultName
+          ) {
+
+            return (
+              `${wardrobeItem.color} ` +
+              `${wardrobeItem.name}`
+            );
+          }
+
+
+          return defaultName;
+        }
+      );
+
+
+    candidates.push({
+
+      outfit: {
+
+        title: '',
+
+        items:
+          displayItems,
+
+        score,
+
+        note:
+          `${selectedStyle} styling · ` +
+          `${harmony}% color harmony · ` +
+          `${styleMatch}% style match · ` +
+          `made entirely from your wardrobe.`
+
+      },
+
+      ids:
+        structure.map(
+          wardrobeItem =>
+            wardrobeItem.id
+        ),
+
+      colors:
+        realColors,
+
+      pieces
+
+    });
+  }
+
+
+  /* =======================================================
+     RANK
+     ======================================================= */
+
+  candidates.sort(
+    (a, b) =>
+      b.outfit.score -
+      a.outfit.score
+  );
+
+
+  if (
+    candidates.length === 0
+  ) {
+    return [];
+  }
+
+
+  /* =======================================================
+     SELECT DIVERSE REAL OUTFITS
+     ======================================================= */
+
+  const selected:
+    WardrobeCandidate[] = [];
+
+
+  /*
+    BEST OVERALL
+  */
+
+  const best =
+    chooseWardrobeCandidate(
+      candidates,
+      selected
+    );
+
+
+  if (best) {
+
+    best.outfit.title =
+      'Best From Your Wardrobe';
+
+    selected.push(best);
+  }
+
+
+  /*
+    TONAL
+  */
+
+  const tonal =
+    chooseWardrobeCandidate(
+      candidates,
+      selected,
+      candidate => {
+
+        return (
+          new Set(
+            candidate.colors
+          ).size <= 2
+        );
+      }
+    );
+
+
+  if (tonal) {
+
+    tonal.outfit.title =
+      'Tonal Wardrobe Edit';
+
+    selected.push(tonal);
+  }
+
+
+  /*
+    NEUTRAL + ACCENT
+  */
+
+  const accent =
+    chooseWardrobeCandidate(
+      candidates,
+      selected,
+      candidate => {
+
+        const neutralCount =
+          candidate.colors.filter(
+            color =>
+              neutrals.has(color)
+          ).length;
+
+
+        const accentCount =
+          candidate.colors.filter(
+            color =>
+              statementColors.has(color)
+          ).length;
+
+
+        return (
+          neutralCount >= 2 &&
+          accentCount >= 1
+        );
+      }
+    );
+
+
+  if (accent) {
+
+    accent.outfit.title =
+      'Neutral + Accent';
+
+    selected.push(accent);
+  }
+
+
+  /*
+    LIGHT / DARK CONTRAST
+  */
+
+  const contrast =
+    chooseWardrobeCandidate(
+      candidates,
+      selected,
+      candidate => {
+
+        const hasLight =
+          candidate.colors.some(
+            color =>
+              lightColors.has(color)
+          );
+
+
+        const hasDark =
+          candidate.colors.some(
+            color =>
+              darkColors.has(color)
+          );
+
+
+        return (
+          hasLight &&
+          hasDark
+        );
+      }
+    );
+
+
+  if (contrast) {
+
+    contrast.outfit.title =
+      'Wardrobe Contrast';
+
+    selected.push(contrast);
+  }
+
+
+  /*
+    COLOR FORWARD
+  */
+
+  const colorful =
+    chooseWardrobeCandidate(
+      candidates,
+      selected,
+      candidate => {
+
+        return candidate.colors.some(
+          color =>
+            statementColors.has(color)
+        );
+      }
+    );
+
+
+  if (colorful) {
+
+    colorful.outfit.title =
+      'Color Forward';
+
+    selected.push(colorful);
+  }
+
+
+  /*
+    Fill any remaining slots with the
+    strongest sufficiently different
+    wardrobe combinations.
+  */
+
+  while (
+    selected.length < 6
+  ) {
+
+    const next =
+      chooseWardrobeCandidate(
+        candidates,
+        selected
+      );
+
+
+    if (!next) {
+      break;
+    }
+
+
+    next.outfit.title =
+      'Wardrobe Alternative';
+
+
+    selected.push(next);
+  }
+
+
+  /*
+    A small wardrobe may legitimately
+    produce only 1, 2 or 3 outfits.
+
+    We intentionally DON'T invent
+    clothing just to reach six.
+  */
+
+  return selected.map(
+    candidate =>
+      candidate.outfit
+  );
+}
