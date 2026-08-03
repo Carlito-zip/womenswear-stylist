@@ -417,47 +417,443 @@ function seasonScore(
    ========================================================= */
 
 function silhouetteScore(
-  outfit: Garment[]
+  items: Garment[],
+  style: Style
 ): number {
+  const top = items.find(
+    item => item.category === 'Top'
+  );
 
-  let score = 88;
+  const bottom = items.find(
+    item => item.category === 'Bottom'
+  );
 
-  const wide =
-    outfit.filter(
-      garment =>
-        garment.volume === 'Wide'
-    ).length;
+  const dress = items.find(
+    item => item.category === 'Dress'
+  );
 
-  const slim =
-    outfit.filter(
-      garment =>
-        garment.volume === 'Slim'
-    ).length;
+  const outerwear = items.find(
+    item => item.category === 'Outerwear'
+  );
 
-  const oversized =
-    outfit.filter(
-      garment =>
-        garment.fit === 'Oversized'
-    ).length;
+  let score = 82;
 
 
-  if (
-    wide >= 1 &&
-    slim >= 1
-  ) {
-    score += 10;
+  /* =====================================================
+     TOP + BOTTOM PROPORTIONS
+     ===================================================== */
+
+  if (top && bottom) {
+
+    /* ---------------------------------------------------
+       FITTED TOP + VOLUMINOUS BOTTOM
+       --------------------------------------------------- */
+
+    if (
+      top.fit === 'Fitted' &&
+      (
+        bottom.volume === 'Wide' ||
+        bottom.volume === 'Flared'
+      )
+    ) {
+      score += 14;
+    }
+
+
+    /* ---------------------------------------------------
+       CROPPED TOP + WIDE / FLARED BOTTOM
+       --------------------------------------------------- */
+
+    if (
+      top.length === 'Cropped' &&
+      (
+        bottom.volume === 'Wide' ||
+        bottom.volume === 'Flared'
+      )
+    ) {
+      score += 12;
+    }
+
+
+    /* ---------------------------------------------------
+       FITTED TOP + STRAIGHT BOTTOM
+       --------------------------------------------------- */
+
+    if (
+      top.fit === 'Fitted' &&
+      bottom.volume === 'Balanced'
+    ) {
+      score += 7;
+    }
+
+
+    /* ---------------------------------------------------
+       OVERSIZED TOP + SLIM BOTTOM
+       --------------------------------------------------- */
+
+    if (
+      top.fit === 'Oversized' &&
+      bottom.volume === 'Slim'
+    ) {
+      score += 14;
+    }
+
+
+    /* ---------------------------------------------------
+       RELAXED TOP + SLIM BOTTOM
+       --------------------------------------------------- */
+
+    if (
+      top.fit === 'Relaxed' &&
+      bottom.volume === 'Slim'
+    ) {
+      score += 9;
+    }
+
+
+    /* ---------------------------------------------------
+       OVERSIZED TOP + BALANCED BOTTOM
+       --------------------------------------------------- */
+
+    if (
+      top.fit === 'Oversized' &&
+      bottom.volume === 'Balanced'
+    ) {
+      score += 8;
+    }
+
+
+    /* ---------------------------------------------------
+       REGULAR TOP + FLARED BOTTOM
+       --------------------------------------------------- */
+
+    if (
+      top.fit === 'Regular' &&
+      bottom.volume === 'Flared'
+    ) {
+      score += 8;
+    }
+
+
+    /* ---------------------------------------------------
+       BALANCED + BALANCED
+       Classic neutral proportion
+       --------------------------------------------------- */
+
+    if (
+      top.volume === 'Balanced' &&
+      bottom.volume === 'Balanced'
+    ) {
+      score += 7;
+    }
+
+
+    /* ---------------------------------------------------
+       BOTH VERY VOLUMINOUS
+       Slight penalty by default.
+       Style rules below can reverse it.
+       --------------------------------------------------- */
+
+    if (
+      (
+        top.volume === 'Wide' ||
+        top.fit === 'Oversized'
+      ) &&
+      bottom.volume === 'Wide'
+    ) {
+      score -= 10;
+    }
+
+
+    /* ---------------------------------------------------
+       SLIM + SLIM
+       Coherent but less visual contrast
+       --------------------------------------------------- */
+
+    if (
+      top.volume === 'Slim' &&
+      bottom.volume === 'Slim'
+    ) {
+      score += 3;
+    }
+
+
+    /* ===================================================
+       STYLE-SPECIFIC SILHOUETTES
+       =================================================== */
+
+
+    /* ---------------- STREETWEAR ---------------- */
+
+    if (style === 'Streetwear') {
+
+      if (
+        (
+          top.fit === 'Oversized' ||
+          top.fit === 'Relaxed'
+        ) &&
+        bottom.volume === 'Wide'
+      ) {
+        score += 18;
+      }
+
+      if (
+        top.length === 'Cropped' &&
+        bottom.volume === 'Wide'
+      ) {
+        score += 8;
+      }
+    }
+
+
+    /* ---------------- Y2K ---------------- */
+
+    if (style === 'Y2K') {
+
+      if (
+        top.length === 'Cropped' &&
+        bottom.volume === 'Flared'
+      ) {
+        score += 18;
+      }
+
+      if (
+        top.fit === 'Fitted' &&
+        bottom.volume === 'Flared'
+      ) {
+        score += 12;
+      }
+
+      if (
+        top.length === 'Cropped' &&
+        bottom.volume === 'Wide'
+      ) {
+        score += 10;
+      }
+    }
+
+
+    /* ---------------- FEMININE ---------------- */
+
+    if (style === 'Feminine') {
+
+      if (
+        top.fit === 'Fitted' &&
+        bottom.volume === 'Flared'
+      ) {
+        score += 12;
+      }
+
+      if (
+        top.length === 'Cropped' &&
+        bottom.volume === 'Wide'
+      ) {
+        score += 7;
+      }
+    }
+
+
+    /* ---------------- MINIMALIST ---------------- */
+
+    if (style === 'Minimalist') {
+
+      if (
+        top.fit === 'Fitted' &&
+        bottom.volume === 'Wide'
+      ) {
+        score += 10;
+      }
+
+      if (
+        top.volume === 'Balanced' &&
+        bottom.volume === 'Balanced'
+      ) {
+        score += 8;
+      }
+    }
+
+
+    /* ---------------- SCANDINAVIAN ---------------- */
+
+    if (style === 'Scandinavian') {
+
+      if (
+        (
+          top.fit === 'Relaxed' ||
+          top.fit === 'Oversized'
+        ) &&
+        (
+          bottom.volume === 'Balanced' ||
+          bottom.volume === 'Wide'
+        )
+      ) {
+        score += 10;
+      }
+
+      if (
+        top.fit === 'Fitted' &&
+        bottom.volume === 'Wide'
+      ) {
+        score += 8;
+      }
+    }
+
+
+    /* ---------------- CLASSIC ---------------- */
+
+    if (style === 'Classic') {
+
+      if (
+        top.volume === 'Balanced' &&
+        bottom.volume === 'Balanced'
+      ) {
+        score += 12;
+      }
+
+      if (
+        top.fit === 'Fitted' &&
+        bottom.volume === 'Flared'
+      ) {
+        score += 6;
+      }
+    }
+
+
+    /* ---------------- PREPPY ---------------- */
+
+    if (style === 'Preppy') {
+
+      if (
+        (
+          top.fit === 'Regular' ||
+          top.fit === 'Fitted'
+        ) &&
+        (
+          bottom.volume === 'Slim' ||
+          bottom.volume === 'Balanced'
+        )
+      ) {
+        score += 10;
+      }
+    }
+
+
+    /* ---------------- EDGY ---------------- */
+
+    if (style === 'Edgy') {
+
+      if (
+        top.fit === 'Oversized' &&
+        bottom.volume === 'Slim'
+      ) {
+        score += 12;
+      }
+
+      if (
+        top.fit === 'Fitted' &&
+        (
+          bottom.volume === 'Wide' ||
+          bottom.volume === 'Flared'
+        )
+      ) {
+        score += 10;
+      }
+    }
   }
 
-  if (wide >= 3) {
-    score -= 15;
+
+  /* =====================================================
+     DRESS SILHOUETTES
+     ===================================================== */
+
+  if (dress) {
+
+    if (
+      dress.fit === 'Fitted' &&
+      dress.volume === 'Slim'
+    ) {
+      score += 7;
+    }
+
+    if (
+      dress.fit === 'Relaxed' &&
+      dress.volume === 'Wide'
+    ) {
+      score += 6;
+    }
+
+    if (
+      style === 'Feminine' &&
+      (
+        dress.volume === 'Slim' ||
+        dress.volume === 'Flared'
+      )
+    ) {
+      score += 8;
+    }
+
+    if (
+      style === 'Minimalist' &&
+      dress.volume === 'Balanced'
+    ) {
+      score += 8;
+    }
+
+    if (
+      style === 'Classic' &&
+      dress.volume === 'Balanced'
+    ) {
+      score += 10;
+    }
+
+    if (
+      style === 'Y2K' &&
+      dress.length === 'Cropped'
+    ) {
+      score += 10;
+    }
   }
 
-  if (oversized >= 2) {
-    score -= 12;
+
+  /* =====================================================
+     OUTERWEAR BALANCE
+     ===================================================== */
+
+  if (outerwear && bottom) {
+
+    if (
+      outerwear.fit === 'Oversized' &&
+      bottom.volume === 'Slim'
+    ) {
+      score += 8;
+    }
+
+    if (
+      outerwear.volume === 'Wide' &&
+      bottom.volume === 'Wide' &&
+      style !== 'Streetwear' &&
+      style !== 'Scandinavian'
+    ) {
+      score -= 5;
+    }
+
+    if (
+      style === 'Streetwear' &&
+      outerwear.volume === 'Wide' &&
+      bottom.volume === 'Wide'
+    ) {
+      score += 8;
+    }
   }
+
+
+  /* =====================================================
+     FINAL LIMIT
+     ===================================================== */
 
   return clamp(score);
 }
+
 
 /* =========================================================
    PERSONAL STYLE PROFILE
@@ -571,10 +967,10 @@ function calculateScore(
       season
     );
 
-  const silhouette =
-    silhouetteScore(
-      pieces
-    );
+  const silhouette = silhouetteScore(
+  garmentData,
+  style
+);
 
   const preference =
     preferenceScore(
@@ -585,15 +981,15 @@ function calculateScore(
     );
 
   return Math.round(
-    clamp(
-      color * 0.25 +
-      styling * 0.20 +
-      formality * 0.15 +
-      seasonal * 0.10 +
-      silhouette * 0.10 +
-      preference * 0.20
-    )
-  );
+  clamp(
+    color * 0.20 +
+    styling * 0.20 +
+    formality * 0.15 +
+    seasonal * 0.10 +
+    silhouette * 0.15 +
+    preference * 0.20
+  )
+);
 }
 
 
