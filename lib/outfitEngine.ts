@@ -968,7 +968,7 @@ function calculateScore(
     );
 
   const silhouette = silhouetteScore(
-  garmentData,
+  pieces,
   style
 );
 
