@@ -1994,55 +1994,28 @@ setOutfits(
                   garmentName => (
 
                     <button
-                      key={
-                        `avoid-${garmentName}`
-                      }
-                      className={
-                        styleProfile
-                          .avoidedGarments
-                          .includes(
-                            garmentName
-                          )
-
-                          ? 'profileChoice avoid active'
-
-                          : 'profileChoice avoid'
-                      }
-                      onClick={() =>
-                        toggleProfileValue(
-                          'avoidedGarments',
-                          garmentName
-                        )
-                      }
-                    
-
-                      
+  key={`avoid-${garmentName}`}
+  className={
+    styleProfile.avoidedGarments.includes(garmentName)
+      ? 'profileChoice avoid active'
+      : 'profileChoice avoid'
+  }
+  onClick={() =>
+    toggleProfileValue(
+      'avoidedGarments',
+      garmentName
+    )
+  }
+>
   {garmentName}
 
   <span>
-    {styleProfile.avoidedGarments.includes(garmentName) ? '👎' : ''}
+    {styleProfile.avoidedGarments.includes(garmentName)
+      ? '👎'
+      : ''}
   </span>
-
 </button>
 
-                  )
-                )}
-
-              </div>
-
-            </div>
-
-
-            <div className="profileFooter">
-
-              <button
-                className="ghost"
-                onClick={
-                  clearStyleProfile
-                }
-              >
-                Clear profile
-              </button>
 
 
               <button
