@@ -96,10 +96,19 @@ export default function OutfitApp() {
     useState('Black');
 
   const [newName, setNewName] =
-    useState('');
+  useState('');
 
-  const [styleProfileOpen, setStyleProfileOpen] =
-    useState(false);
+const [garmentImage, setGarmentImage] =
+  useState<string | null>(null);
+
+const [garmentImageFile, setGarmentImageFile] =
+  useState<File | null>(null);
+
+const [isAnalyzingGarment, setIsAnalyzingGarment] =
+  useState(false);
+
+const [styleProfileOpen, setStyleProfileOpen] =
+  useState(false);
 
   const [styleProfile, setStyleProfile] =
     useState<StyleProfile>({
@@ -585,6 +594,50 @@ export default function OutfitApp() {
       categories[c][0]
     );
   }
+
+  function handleGarmentImage(
+  event: React.ChangeEvent<HTMLInputElement>
+) {
+
+  const file =
+    event.target.files?.[0];
+
+  if (!file) {
+    return;
+  }
+
+  if (
+    !file.type.startsWith('image/')
+  ) {
+
+    alert(
+      'Please choose an image.'
+    );
+
+    return;
+  }
+
+  setGarmentImageFile(file);
+
+  const reader =
+    new FileReader();
+
+  reader.onload = () => {
+
+    if (
+      typeof reader.result ===
+      'string'
+    ) {
+
+      setGarmentImage(
+        reader.result
+      );
+    }
+
+  };
+
+  reader.readAsDataURL(file);
+}
 
 
   function styleWardrobeItem(
@@ -2165,7 +2218,126 @@ export default function OutfitApp() {
                 </div>
 
 
-                <div className="wardrobeFormGrid">
+    {/* =========================================
+        GARMENT PHOTO SCANNER
+        ========================================= */}
+
+    <div className="garmentScanner">
+
+      <div className="garmentScannerHeader">
+
+        <p className="eyebrow">
+          SMART WARDROBE
+        </p>
+
+        <h3>
+          Scan your garment
+        </h3>
+
+        <p>
+          Take a photo or upload one.
+          MUSE will identify the garment,
+          category and color for you.
+        </p>
+
+      </div>
+
+
+      {!garmentImage ? (
+
+        <label className="garmentUpload">
+
+          <div className="garmentUploadIcon">
+            📷
+          </div>
+
+          <strong>
+            Take or upload a photo
+          </strong>
+
+          <span>
+            One garment per photo works best
+          </span>
+
+
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={
+              handleGarmentImage
+            }
+            hidden
+          />
+
+        </label>
+
+      ) : (
+
+        <div className="garmentPreview">
+
+          <img
+            src={garmentImage}
+            alt="Garment preview"
+          />
+
+
+          <div className="garmentPreviewActions">
+
+            <button
+              type="button"
+              className="secondaryButton"
+              onClick={() => {
+
+                setGarmentImage(
+                  null
+                );
+
+                setGarmentImageFile(
+                  null
+                );
+
+              }}
+            >
+              Remove photo
+            </button>
+
+
+            <button
+              type="button"
+              className="primaryButton"
+              disabled={
+                isAnalyzingGarment
+              }
+              onClick={() => {
+
+                /*
+                  AI garment recognition
+                  will go here next.
+                */
+
+              }}
+            >
+
+              {
+                isAnalyzingGarment
+                  ? 'Analyzing...'
+                  : 'Identify garment'
+              }
+
+            </button>
+
+          </div>
+
+        </div>
+
+      )}
+
+    </div>
+
+
+    <div className="wardrobeFormGrid">
+
 
                   <label>
 
