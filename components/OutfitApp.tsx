@@ -1959,11 +1959,50 @@ export default function OutfitApp() {
 
 
               <p className="profileLabel">
-                PIECES I AVOID
-              </p>
+  PIECES I AVOID
+</p>
 
+<div className="profileChoices garmentChoices">
 
-              <div className="profileChoices garmentChoices">
+  {allGarmentNames.map(
+    garmentName => (
+
+      <button
+        key={`avoid-${garmentName}`}
+        className={
+          styleProfile
+            .avoidedGarments
+            .includes(garmentName)
+            ? 'profileChoice avoid active'
+            : 'profileChoice avoid'
+        }
+        onClick={() =>
+          toggleProfileValue(
+            'avoidedGarments',
+            garmentName
+          )
+        }
+      >
+
+        {garmentName}
+
+        <span>
+          {
+            styleProfile
+              .avoidedGarments
+              .includes(garmentName)
+              ? '👎'
+              : ''
+          }
+        </span>
+
+      </button>
+
+    )
+  )}
+
+</div>
+
 
                 {allGarmentNames.map(
                   garmentName => (
