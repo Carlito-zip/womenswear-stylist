@@ -437,6 +437,152 @@ function silhouetteScore(
   );
 
   let score = 82;
+export function generateOutfitExplanation(
+  pieces: Garment[],
+  colors: string[],
+  style: Style
+): string {
+  const top = pieces.find(piece => piece.category === 'Top');
+  const bottom = pieces.find(piece => piece.category === 'Bottom');
+  const dress = pieces.find(piece => piece.category === 'Dress');
+  const outerwear = pieces.find(piece => piece.category === 'Outerwear');
+
+  const reasons: string[] = [];
+
+  /* =====================================================
+     SILHOUETTE / PROPORTIONS
+     ===================================================== */
+
+  if (top && bottom) {
+    if (
+      top.fit === 'Fitted' &&
+      (bottom.volume === 'Wide' || bottom.volume === 'Flared')
+    ) {
+      reasons.push(
+        `The fitted ${top.name.toLowerCase()} balances the volume of the ${bottom.name.toLowerCase()}, creating a flattering contrast in proportions.`
+      );
+    }
+
+    else if (
+      top.length === 'Cropped' &&
+      (bottom.volume === 'Wide' || bottom.volume === 'Flared')
+    ) {
+      reasons.push(
+        `The cropped ${top.name.toLowerCase()} works especially well with the ${bottom.name.toLowerCase()} by defining the waist and balancing the wider silhouette.`
+      );
+    }
+
+    else if (
+      top.fit === 'Oversized' &&
+      bottom.volume === 'Slim'
+    ) {
+      reasons.push(
+        `The oversized ${top.name.toLowerCase()} is balanced by the slimmer ${bottom.name.toLowerCase()}, keeping the silhouette intentional rather than overwhelming.`
+      );
+    }
+
+    else if (
+      top.volume === 'Balanced' &&
+      bottom.volume === 'Balanced'
+    ) {
+      reasons.push(
+        `The ${top.name.toLowerCase()} and ${bottom.name.toLowerCase()} create clean, balanced proportions.`
+      );
+    }
+
+    else if (
+      style === 'Streetwear' &&
+      (top.fit === 'Oversized' || top.fit === 'Relaxed') &&
+      bottom.volume === 'Wide'
+    ) {
+      reasons.push(
+        `The relaxed proportions create an intentionally oversized silhouette that works particularly well for a streetwear look.`
+      );
+    }
+  }
+
+  /* =====================================================
+     DRESSES
+     ===================================================== */
+
+  if (dress) {
+    if (dress.fit === 'Fitted') {
+      reasons.push(
+        `The fitted silhouette of the ${dress.name.toLowerCase()} gives the outfit a defined, streamlined shape.`
+      );
+    }
+
+    else if (dress.fit === 'Relaxed') {
+      reasons.push(
+        `The relaxed silhouette of the ${dress.name.toLowerCase()} gives the outfit an effortless sense of movement.`
+      );
+    }
+  }
+
+  /* =====================================================
+     OUTERWEAR
+     ===================================================== */
+
+  if (outerwear && bottom) {
+    if (
+      outerwear.fit === 'Oversized' &&
+      bottom.volume === 'Slim'
+    ) {
+      reasons.push(
+        `The ${outerwear.name.toLowerCase()} adds volume on top while the slimmer bottom keeps the overall silhouette balanced.`
+      );
+    }
+  }
+
+  /* =====================================================
+     STYLE
+     ===================================================== */
+
+  const strongStylePieces = pieces.filter(
+    piece => piece.styles[style] >= 4
+  );
+
+  if (strongStylePieces.length >= 2) {
+    reasons.push(
+      `The pieces share strong ${style.toLowerCase()} influences, which makes the outfit feel stylistically cohesive.`
+    );
+  }
+
+  /* =====================================================
+     COLOR
+     ===================================================== */
+
+  const uniqueColors = Array.from(new Set(colors));
+
+  if (uniqueColors.length === 1) {
+    reasons.push(
+      `The monochromatic ${uniqueColors[0].toLowerCase()} palette gives the outfit a clean, cohesive finish.`
+    );
+  }
+
+  else if (uniqueColors.length === 2) {
+    reasons.push(
+      `The ${uniqueColors[0].toLowerCase()} and ${uniqueColors[1].toLowerCase()} palette keeps the look visually cohesive without feeling flat.`
+    );
+  }
+
+  else if (uniqueColors.length >= 3) {
+    reasons.push(
+      `The color palette adds variation while the pieces remain connected through the overall styling.`
+    );
+  }
+
+  /* =====================================================
+     FALLBACK
+     ===================================================== */
+
+  if (reasons.length === 0) {
+    return `The pieces work together through a balanced combination of color, silhouette and ${style.toLowerCase()} styling.`;
+  }
+
+  /* Maximum two explanations so cards don't become huge */
+  return reasons.slice(0, 2).join(' ');
+}
 
 
   /* =====================================================
@@ -2424,12 +2570,19 @@ export function generateWardrobeOutfits(
 
 
     const styleMatch =
-      Math.round(
-        styleScore(
-          pieces,
-          selectedStyle
-        )
-      );
+  Math.round(
+    styleScore(
+      pieces,
+      selectedStyle
+    )
+  );
+
+const silhouetteMatch = Math.round(
+  silhouetteScore(
+    pieces,
+    selectedStyle
+  )
+);
 
 
     /*
@@ -2482,10 +2635,11 @@ export function generateWardrobeOutfits(
         score,
 
         note:
-          `${selectedStyle} styling · ` +
-          `${harmony}% color harmony · ` +
-          `${styleMatch}% style match · ` +
-          `made entirely from your wardrobe.`
+  `${selectedStyle} styling · ` +
+  `${harmony}% color harmony · ` +
+  `${styleMatch}% style match · ` +
+  `${silhouetteMatch}% silhouette match · ` +
+  `made entirely from your wardrobe.`
 
       },
 
