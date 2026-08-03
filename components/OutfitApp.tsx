@@ -554,7 +554,11 @@ const [styleProfileOpen, setStyleProfileOpen] =
 
     setNewName('');
 
-    setAddingItem(false);
+setGarmentImage(null);
+
+setGarmentImageFile(null);
+
+setAddingItem(false);
   }
 
 
