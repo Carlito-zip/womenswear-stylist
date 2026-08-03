@@ -1359,31 +1359,43 @@ function createNote(
   season: string
 ): string {
 
-  const harmony =
-    Math.round(
-      colorScore(
-        colors,
-        pieces,
-        anchorColor
-      )
-    );
+  const harmony = Math.round(
+    colorScore(
+      colors,
+      pieces,
+      anchorColor
+    )
+  );
 
-  const styleMatch =
-    Math.round(
-      styleScore(
-        pieces,
-        style
-      )
+  const styleMatch = Math.round(
+    styleScore(
+      pieces,
+      style
+    )
+  );
+
+  const silhouetteMatch = Math.round(
+    silhouetteScore(
+      pieces,
+      style
+    )
+  );
+
+  const explanation =
+    generateOutfitExplanation(
+      pieces,
+      colors,
+      style
     );
 
   return (
-    `${style} styling · ` +
+    `${explanation} ` +
     `${harmony}% color harmony · ` +
     `${styleMatch}% style match · ` +
-    `balanced for ${occasion.toLowerCase()} ` +
-    `and ${season.toLowerCase()}.`
+    `${silhouetteMatch}% silhouette match.`
   );
 }
+
 
 
 /* =========================================================
@@ -2558,7 +2570,13 @@ const silhouetteMatch = Math.round(
   )
 );
 
-
+const explanation =
+  generateOutfitExplanation(
+    pieces,
+    realColors,
+    selectedStyle
+  );
+    
     /*
       Use the user's custom wardrobe name
       where available.
@@ -2608,12 +2626,12 @@ const silhouetteMatch = Math.round(
 
         score,
 
-        note:
-  `${selectedStyle} styling · ` +
+       note:
+  `${explanation} ` +
   `${harmony}% color harmony · ` +
   `${styleMatch}% style match · ` +
   `${silhouetteMatch}% silhouette match · ` +
-  `made entirely from your wardrobe.`
+  `Made entirely from your wardrobe.`
 
       },
 
