@@ -308,95 +308,70 @@ export default function OutfitApp() {
 
 
   function generate() {
+  setGeneratorMessage('');
 
-    setGeneratorMessage('');
+  if (generatorMode === 'wardrobe') {
+    if (!selectedWardrobeId) {
+      setOutfits([]);
 
-
-    if (
-      generatorMode ===
-      'wardrobe'
-    ) {
-
-      if (!selectedWardrobeId) {
-
-        setOutfits([]);
-
-        setGeneratorMessage(
-          'Choose a piece from My Wardrobe first.'
-        );
-
-        return;
-      }
-
-
-      const results =
-  generateWardrobeOutfits(
-    selectedWardrobeId,
-    wardrobe,
-    style,
-    occasion,
-    season,
-    styleProfile
-  );
-
-
-      setOutfits(results);
-
-
-      if (
-        results.length === 0
-      ) {
-
-        setGeneratorMessage(
-          getWardrobeHelpMessage()
-        );
-
-        return;
-      }
-
-
-      if (
-        results.length < 6
-      ) {
-
-        setGeneratorMessage(
-          `MUSE found ${results.length} complete ${
-            results.length === 1
-              ? 'outfit'
-              : 'outfits'
-          } using only pieces you own. Add more wardrobe pieces for more combinations.`
-        );
-      }
-
-    } else {
-
-setOutfits(
-        generateOutfits(
-          category,
-          item,
-          color,
-          style,
-          occasion,
-          season,
-          styleProfile
-        )
+      setGeneratorMessage(
+        'Choose a piece from My Wardrobe first.'
       );
 
-    }      
-    
+      return;
+    }
 
-    setTimeout(() => {
+    const results = generateWardrobeOutfits(
+      selectedWardrobeId,
+      wardrobe,
+      style,
+      occasion,
+      season,
+      styleProfile
+    );
 
-      document
-        .getElementById(
-          'results'
-        )
-        ?.scrollIntoView({
-          behavior: 'smooth'
-        });
+    setOutfits(results);
 
-    }, 50);
+    if (results.length === 0) {
+      setGeneratorMessage(
+        getWardrobeHelpMessage()
+      );
+
+      return;
+    }
+
+    if (results.length < 6) {
+      setGeneratorMessage(
+        `MUSE found ${results.length} complete ${
+          results.length === 1
+            ? 'outfit'
+            : 'outfits'
+        } using only pieces you own. Add more wardrobe pieces for more combinations.`
+      );
+    }
+  } else {
+    setOutfits(
+      generateOutfits(
+        category,
+        item,
+        color,
+        style,
+        occasion,
+        season,
+        styleProfile
+      )
+    );
   }
+
+  setTimeout(() => {
+    document
+      .getElementById('results')
+      ?.scrollIntoView({
+        behavior: 'smooth'
+      });
+  }, 50);
+}
+
 
 
   function getWardrobeHelpMessage() {
